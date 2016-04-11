@@ -64,12 +64,12 @@ sub widget
 	super   => $super,
 	members => $members
     }), "\n";
-    return {
+    return Widget->new(
 	Name             => $name,
 	super            => $super,
 	class_members    => $members->[0],
 	instance_members => $members->[1],
-    };
+    );
 }
 
 sub class_member_definitions
@@ -134,13 +134,12 @@ sub resource_definition
 
     $self->expect(";");
 
-    return {
-	is_public => 1,
+    return Resource->new(
 	field     => $field,
 	repr      => $repr,
 	class     => $class,
 	init      => $init,
-    };
+    );
 }
 
 sub private_field_definition
@@ -150,6 +149,9 @@ sub private_field_definition
     $self->expect("private:");
     $self->expect(";");
     $self->commit();
+
+    return PrivateInstanceMember->new(
+    );
 }
 
 # Meta-rule
@@ -207,6 +209,122 @@ sub ident_lowercase
     return $token;
 }
 
+package Widget;
+
+# a.k.a. public or settable instance member.
+
+sub new
+{
+    my $class;
+    my @fields;
+    ($class, @fields) = @_;
+
+    bless { @fields }, $class;
+}
+
+sub analyze
+{
+    (my $self, my $allwidgets) = @_;
+
+    return if (exists $self->{analyzed});
+
+    print "Analyzing $self->{Name}\n";
+
+    my $super = $self->{super};
+    if (defined $super && exists $allwidgets->{$super}) {
+	print "but first Analyzing $super\n";
+	$allwidgets->{$super}->analyze($allwidgets);
+    }
+
+    $self->{analyzed}++;
+
+    my $Name = $self->{Name};
+
+    (my $NAME = $Name) =~ tr/a-z/A-Z/;
+    (my $name = $Name) =~ s/^./\l$&/;
+    my $l_name = main::lowerclassname($Name);
+
+    $self->{name} = $name;
+    $self->{l_name} = $l_name;
+    $self->{NAME} = $NAME;
+    $self->{Public_h_file_name} = $Name.".h";
+    $self->{Private_h_file_name} = $Name."P.h";
+    $self->{c_file_name} = $Name.".c";
+
+    # Calculate (super)class record declarations
+
+    $self->{class_part_instance_decl} =
+	"    ${Name}ClassPart ${l_name}_class;\n";
+    $self->{instance_part_instance_decl} =
+	"    ${Name}Part ${l_name};\n";
+
+    $self->{all_class_part_instance_decls} = "";
+    $self->{all_instance_part_instance_decls} = "";
+
+    if (defined $super && exists $allwidgets->{$super}) {
+	my $sclass = $allwidgets->{$super};
+	$self->{all_class_part_instance_decls} = 
+	    $sclass->{all_class_part_instance_decls} . $self->{class_part_instance_decl};
+	$self->{all_instance_part_instance_decls} = 
+	    $sclass->{all_instance_part_instance_decls} . $self->{instance_part_instance_decl};
+    } else {
+	$self->{all_class_part_instance_decls} = 
+	    $self->{class_part_instance_decl};
+	$self->{all_instance_part_instance_decls} = 
+	    $self->{instance_part_instance_decl};
+    }
+}
+
+package Resource;
+
+# a.k.a. public or settable instance member.
+
+sub new
+{
+    my $class;
+    my @fields;
+    ($class, @fields) = @_;
+
+    bless { @fields }, $class;
+}
+
+sub analyze
+{
+    (my $self, my $arg) = @_;
+}
+
+package PrivateInstanceMember;
+
+sub new
+{
+    my $class;
+    my @fields;
+    ($class, @fields) = @_;
+
+    bless { @fields }, $class;
+}
+
+sub analyze
+{
+    (my $self, my $arg) = @_;
+}
+
+package ClassMember;
+
+sub new
+{
+    my $class;
+    my @fields;
+    ($class, @fields) = @_;
+
+    bless { @fields }, $class;
+}
+
+sub analyze
+{
+    (my $self, my $arg) = @_;
+}
+
 package main;
 
 sub main
@@ -221,12 +339,25 @@ sub main
 
     print Dumper($tree), "\n";
 
+    analyze_all($tree);
     generate_all($tree);
+}
+
+sub analyze_all
+{
+    my $hash = $_[0];
+    
+    my $key;
+    my $value;
+
+    while (($key, $value) = each %$hash) {
+	$value->analyze($hash);
+    }
 }
 
 sub generate_all
 {
-    my $hash = shift;
+    my $hash = $_[0];
 
     my $key;
     my $value;
@@ -242,7 +373,7 @@ sub generate_all
 
 sub lowerclassname
 {
-    my $name = shift;
+    my $name = $_[0];
 
     $name =~ s/[A-Z]/_\l$&/g;
     $name =~ s/^_//;
@@ -253,35 +384,21 @@ sub lowerclassname
 sub generate_one
 {
     my $hash = shift;
-    my $allclasses = shift;
+    my $allwidgets = shift;
 
-    my $Name = $hash->{Name};
-
-    (my $NAME = $Name) =~ tr/a-z/A-Z/;
-    (my $name = $Name) =~ s/^./\l$&/;
-    my $lname = lowerclassname($Name);
-    my $Public_h_file_name = $Name.".h";
-    my $Private_h_file_name = $Name."P.h";
-
-    $hash->{Public_h_file_name} = $Public_h_file_name;
-    $hash->{Private_h_file_name} = $Private_h_file_name;
-    $hash->{name} = $name;
-    $hash->{lname} = $lname;
-    $hash->{NAME} = $NAME;
-
-    generate_public_h_file($hash, $allclasses);
-    generate_private_h_file($hash, $allclasses);
+    generate_public_h_file($hash, $allwidgets);
+    generate_private_h_file($hash, $allwidgets);
 }
 
 sub generate_public_h_file
 {
     my $hash = shift;
-    my $allclasses = shift;
+    my $allwidgets = shift;
 
     my $Public_h_file_name = $hash->{Public_h_file_name};
     my $NAME = $hash->{NAME};
     my $name = $hash->{name};
-    my $lname = $hash->{lname};
+    my $l_name = $hash->{l_name};
     my $Name = $hash->{Name};
 
     open FILE, ">", $Public_h_file_name;
@@ -306,34 +423,13 @@ HERE_EOF
 sub generate_private_h_file
 {
     my $hash = shift;
-    my $allclasses = shift;
+    my $allwidgets = shift;
 
     my $Private_h_file_name = $hash->{Private_h_file_name};
     my $NAME = $hash->{NAME};
     my $name = $hash->{name};
-    my $lname = $hash->{lname};
+    my $l_name = $hash->{l_name};
     my $Name = $hash->{Name};
-
-    # Calculate all superclass record declarations
-    my $superclassdecls = "";
-    my $superinstdecls = "";
-
-    my $super = $hash->{super};
-
-    while (defined $super && exists $allclasses->{$super}) {
-	my $sclass = $allclasses->{$super};
-
-	my $Classname = $sclass->{Name};
-	my $lclassname = lowerclassname($Classname);
-
-	my $line = "    ${Classname}ClassPart ${lclassname}_class;\n";
-	$superclassdecls = $line . $superclassdecls;
-
-	$line = "    ${Classname}Part ${lclassname};\n";
-	$superinstdecls = $line . $superinstdecls;
-
-	$super = $sclass->{super};
-    }
 
     open FILE, ">", $Private_h_file_name;
     print FILE <<HERE_EOF;
@@ -355,8 +451,7 @@ typedef struct {
 
 /* Full instance record declaration */
 typedef struct _${Name}Rec {
-${superinstdecls}
-    ${Name}Part ${lname};
+$hash->{all_instance_part_instance_decls}
 } ${Name}Rec;
 
 /* Types for ${Name} class methods */
@@ -368,8 +463,7 @@ typedef struct {
 
 /* Full class record declaration */
 typedef struct _${Name}ClassRec {
-${superclassdecls}
-    ${Name}ClassPart ${lname}_class;
+$hash->{all_class_part_instance_decls}
 } ${Name}ClassRec;
 
 /* Class record variable */
