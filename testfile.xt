@@ -1,0 +1,23 @@
+widget FooThing : BaseType {
+    class {
+	override
+    }
+    instance {
+	public: Pixel(Color) background = foo + bar;
+    }
+};
+widget BaseType : Core {
+    class {
+	dummy-class-member
+    }
+    instance {
+    }
+};
+widget Core {
+    class {
+	dummy-class-member
+    }
+    instance {
+    }
+}
+# A Comment
