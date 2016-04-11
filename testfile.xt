@@ -3,7 +3,9 @@ widget FooThing : BaseType {
 	override
     }
     instance {
-	public: Pixel(Color) background = foo + bar;
+	public: Pixel(Color) foreground = White;
+	public: Pixel(Color) background = (Black + White) / 2;
+	public: Int(Int) testint : int = 3;
     }
 };
 widget BaseType : Core {
