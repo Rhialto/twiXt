@@ -1,7 +1,11 @@
 widget FooThing : BaseType {
+    override BaseType {
+	classfield_int = 99;
+    }
     class {
 	int foo_thing_int = 0xF001;
 	long foo_thing_long = 0xF002;
+	void (*funcptr)(int, int) = 0;
     }
     instance {
 	public: Pixel(Color) foreground = 0;

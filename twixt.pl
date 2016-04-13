@@ -56,6 +56,7 @@ sub widget
     $self->commit();
     my $members = $self->scope_of_block( sub {
 	$self->all_of(
+	    sub { $self->class_overrides(); },
 	    sub { $self->class_member_definitions(); },
 	    sub { $self->instance_member_definitions(); }
 	)
@@ -69,9 +70,55 @@ sub widget
     return Widget->new(
 	Name             => $name,
 	super            => $super,
-	class_members    => $members->[0],
-	instance_members => $members->[1],
+	class_overrides  => $members->[0],
+	class_members    => $members->[1],
+	instance_members => $members->[2],
     );
+}
+
+sub class_overrides
+{
+    my $self = $_[0];
+
+    my @overrides = ();
+
+    $self->sequence_of( sub {
+	$self->expect("override");
+	$self->commit();
+
+	my $overridden = $self->ident_camelcase();
+
+	my $members = $self->scope_of_block( sub {
+	    $self->sequence_of ( sub {
+		$self->class_member_override()
+	    } )
+	} );
+
+	push @overrides, ClassOverride->new(
+	    name => $overridden,
+	    fields => $members,
+	);
+
+    } );
+
+    return \@overrides;
+}
+
+sub class_member_override
+{
+    my $self = $_[0];
+
+    my $parts = $self->all_of(
+	sub { $self->ident_lowercase() },
+	sub { $self->expect("=") },
+	sub { $self->substring_before(";") },
+	sub { $self->expect(";") },
+    );
+
+    return {
+	field => $parts->[0],
+	init  => $parts->[2],
+    };
 }
 
 sub class_member_definitions
@@ -83,10 +130,7 @@ sub class_member_definitions
 
     $self->scope_of_block( sub {
 	$self->sequence_of ( sub {
-	    $self->any_of(
-		sub { $self->class_member_definition() },
-		sub { $self->override_class_member() },
-	    )
+	    $self->class_member_definition()
 	} )
     } );
 }
@@ -106,6 +150,7 @@ sub class_member_definition
     my $init_subclass;
 
     if ($self->maybe_expect("=")) {
+	$self->skip_ws();
 	$init_self = $self->substring_before(";");
 	$self->expect(";");
     } else {
@@ -113,6 +158,7 @@ sub class_member_definition
     }
 
     if ($self->maybe_expect("sub=")) {
+	$self->skip_ws();
 	$init_subclass = $self->substring_before(";");
 	$self->expect(";");
     } else {
@@ -183,10 +229,12 @@ sub resource_definition
     my $field = $self->ident_lowercase();
 
     if ($self->maybe_expect(":")) {
+	$self->skip_ws();
 	$ctype = $self->substring_before(qr/[=;]/);
     }
 
     if ($self->maybe_expect("=")) {
+	$self->skip_ws();
 	$init = $self->substring_before(";");
 	length $init or $self->fail( "Expected a C initializer expression ';'" );
     } else {
@@ -265,6 +313,7 @@ sub c_declaration
 	$declaratortype = $cv." ".$declaratortype;
     }
 
+    $self->skip_ws();
     my $declarator = $self->substring_before(qr/[=;]/);
     print "c_declaration: after declarator: $declarator\n";
     my $id;
@@ -309,7 +358,7 @@ sub scope_of_block
 # Expect all of the code refs in sequence and return a reference to a
 # list containing their results.
 # XXX Doesn't do fancy commit handling.
-sub all_of #_try_1
+sub all_of_try_1
 {
     (my $self, my @codes) = @_;
 
@@ -322,29 +371,32 @@ sub all_of #_try_1
     return \@result;
 }
 
-sub all_of_try_2
+# A merge between any_of and list_of
+sub all_of #_try_2
 {
     my $self = shift;
-    my @result = ();
+    my @ret = ();
 
-    while( @_ ) {
+    while (@_ && !$self->at_eos) {
 	my $code = shift;
 	my $pos = pos $self->{str};
 
 	my $committed = 0;
 	local $self->{committer} = sub { $committed++ };
 
-	my $ret;
-	eval { $ret = $self->$code; push @result, $ret; 1 } or {
-	    my $e = $@;
+	eval { push @ret, $self->$code; 1 } and next;
+	my $e = $@;
 
-	    pos( $self->{str} ) = $pos;
-
-	    die $e if $committed or not _isa_failure( $e );
-	}
+	pos( $self->{str} ) = $pos;
+	die $e if $committed or not _isa_failure( $e );
+	
+	last;
+    }
+    continue {
+	$self->skip_ws;
     }
 
-    return \@result;
+    return \@ret;
 }
 
 # CamelCase
@@ -591,6 +643,26 @@ sub analyze
     my $field = "    ${ctype} ${name};\n";
 
     push @{$widget->{code_instance_record}}, [ $field, $self ];
+}
+
+package ClassOverride;
+
+use strict;
+use warnings;
+use Data::Dumper;
+
+sub new
+{
+    my $class;
+    my @fields;
+    ($class, @fields) = @_;
+
+    bless { @fields }, $class;
+}
+
+sub analyze
+{
+    (my $self, my $arg) = @_;
 }
 
 package PrivateInstanceMember;
