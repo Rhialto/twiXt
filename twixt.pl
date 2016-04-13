@@ -84,8 +84,8 @@ sub class_member_definitions
     $self->scope_of_block( sub {
 	$self->sequence_of ( sub {
 	    $self->any_of(
-		sub { $self->override_class_member() },
 		sub { $self->class_member_definition() },
+		sub { $self->override_class_member() },
 	    )
 	} )
     } );
@@ -95,10 +95,34 @@ sub class_member_definition
 {
     my $self = $_[0];
 
-    $self->expect("dummy-class-member");
+#    $self->expect("dummy-class-member");
+
+#    return ClassMember->new(
+#	what => "dummy"
+#    );
+
+    my $decl = $self->c_declaration();
+    my $init_self;
+    my $init_subclass;
+
+    if ($self->maybe_expect("=")) {
+	$init_self = $self->substring_before(";");
+	$self->expect(";");
+    } else {
+	$init_self = "0";
+    }
+
+    if ($self->maybe_expect("sub=")) {
+	$init_subclass = $self->substring_before(";");
+	$self->expect(";");
+    } else {
+	$init_subclass = $init_self;
+    }
 
     return ClassMember->new(
-	what => "dummy"
+	%{$decl},
+	init_self     => $init_self,
+	init_subclass => $init_subclass,
     );
 }
 
@@ -185,10 +209,14 @@ sub private_field_definition
     my $self = $_[0];
 
     $self->expect("private:");
-    $self->expect(";");
     $self->commit();
 
+    my $decl = $self->c_declaration();
+
+    $self->expect(";");
+
     return PrivateInstanceMember->new(
+	%{$decl}
     );
 }
 
@@ -204,22 +232,32 @@ sub c_declaration
 {
     (my $self) = @_;
 
+    print "c_declaration: before qualifiers\n";
     my $qualifiers = $self->sequence_of( sub {
 	    $self->token_kw(qw(const volatile))
 	});
+    print "c_declaration: after qualifiers: @{$qualifiers}\n";
 
     my $declaratortype;
 
-    my $su;
-
-    if ($su = $self->token_kw(qw(struct union))) {
-	my $tag = $self->token_ident();
-	$declaratortype = $su." ".$tag;
+    print "c_declaration: before struct/union\n";
+    $self->maybe(sub {
+	    my $token = $self->token_kw(qw(struct union));
+	    my $tag = $self->token_ident();
+	    $declaratortype = $token." ".$tag;
+	});
+    if (defined $declaratortype) {
+	# struct/union part matched
     } else {
+	print "c_declaration: before basic types\n";
 	my $basictypes = $self->sequence_of( sub {
 		$self->token_kw(qw(signed unsigned long short char int float double void))
 	    });
+	if (! @{$basictypes}) {
+	    $self->fail("No type in C declaration");
+	}
 	$declaratortype = join(" ", @$basictypes);
+	print "c_declaration: after basic types: $declaratortype\n";
     }
 
     if (@$qualifiers) {
@@ -228,6 +266,7 @@ sub c_declaration
     }
 
     my $declarator = $self->substring_before(qr/[=;]/);
+    print "c_declaration: after declarator: $declarator\n";
     my $id;
     my $cast_declarator;
 
@@ -242,6 +281,9 @@ sub c_declaration
 	$cast_declarator = ${^PREMATCH}."__id__".${^POSTMATCH};
 	last;
     }
+    if (!defined $cast_declarator) {
+	print "c_declaration: Can't find id in declarator $declarator\n";
+    }
 
     my $declaration = $declaratortype." ".$declarator;
     my $cast_declaration = $declaratortype." ".$cast_declarator;
@@ -251,7 +293,7 @@ sub c_declaration
 	cast_declaration        => $cast_declaration,
 	declaration_specifiers  => $declaratortype,
 	declarator              => $declarator,
-	id                      => $id,
+	field                   => $id,
     };
 }
 
@@ -267,7 +309,7 @@ sub scope_of_block
 # Expect all of the code refs in sequence and return a reference to a
 # list containing their results.
 # XXX Doesn't do fancy commit handling.
-sub all_of
+sub all_of #_try_1
 {
     (my $self, my @codes) = @_;
 
@@ -275,6 +317,31 @@ sub all_of
 
     for my $code (@codes) {
 	push @result, $self->$code();
+    }
+
+    return \@result;
+}
+
+sub all_of_try_2
+{
+    my $self = shift;
+    my @result = ();
+
+    while( @_ ) {
+	my $code = shift;
+	my $pos = pos $self->{str};
+
+	my $committed = 0;
+	local $self->{committer} = sub { $committed++ };
+
+	my $ret;
+	eval { $ret = $self->$code; push @result, $ret; 1 } or {
+	    my $e = $@;
+
+	    pos( $self->{str} ) = $pos;
+
+	    die $e if $committed or not _isa_failure( $e );
+	}
     }
 
     return \@result;
@@ -331,9 +398,12 @@ sub analyze
     print "Analyzing $self->{Name}\n";
 
     my $super = $self->{super};
+    my $superclass;
+
     if (defined $super && exists $allwidgets->{$super}) {
+	$superclass = $allwidgets->{$super};
 	print "but first Analyzing $super\n";
-	$allwidgets->{$super}->analyze($allwidgets);
+	$superclass->analyze($allwidgets);
     }
 
     $self->{analyzed}++;
@@ -374,12 +444,11 @@ sub analyze
     $self->{all_class_part_instance_decls} = "";
     $self->{all_instance_part_instance_decls} = "";
 
-    if (defined $super && exists $allwidgets->{$super}) {
-	my $sclass = $allwidgets->{$super};
+    if (defined $superclass) {
 	$self->{all_class_part_instance_decls} =
-	    $sclass->{all_class_part_instance_decls} . $self->{class_part_instance_decl};
+	    $superclass->{all_class_part_instance_decls} . $self->{class_part_instance_decl};
 	$self->{all_instance_part_instance_decls} =
-	    $sclass->{all_instance_part_instance_decls} . $self->{instance_part_instance_decl};
+	    $superclass->{all_instance_part_instance_decls} . $self->{instance_part_instance_decl};
     } else {
 	$self->{all_class_part_instance_decls} =
 	    $self->{class_part_instance_decl};
@@ -397,6 +466,37 @@ sub analyze
 	foreach my $m (@$mems) {
 	    $m->analyze($self);
 	}
+
+	my $classdecl = "";
+	foreach my $m (@$mems) {
+	    $classdecl .= $m->{code_class_decl};
+	}
+
+	$self->{code_class_decl} = $classdecl;
+
+	my $init_self = "";
+	my $init_subclass = "";
+
+	if (defined $superclass) {
+	    $init_self     = $superclass->{code_init_subclass};
+	    $init_subclass = $superclass->{code_init_subclass};
+	}
+
+	$init_self .= "    { /* init_self $self->{Name} */\n";
+	foreach my $m (@$mems) {
+	    $init_self .= $m->{code_init_self};
+	}
+	$init_self .= "    }, /* $self->{Name} */\n";
+
+	$self->{code_init_self} = $init_self;
+
+	$init_subclass .= "    { /* init_subclass $self->{Name} */\n";
+	foreach my $m (@$mems) {
+	    $init_subclass .= $m->{code_init_subclass};
+	}
+	$init_subclass .= "    }, /* $self->{Name} */\n";
+
+	$self->{code_init_subclass} = $init_subclass;
     }
 
     # Analyze instance_members (type Resource and PrivateInstanceMember)
@@ -404,6 +504,7 @@ sub analyze
 	foreach my $m (@$mems) {
 	    $m->analyze($self);
 	}
+
     }
 }
 
@@ -494,6 +595,10 @@ sub analyze
 
 package PrivateInstanceMember;
 
+use strict;
+use warnings;
+use Data::Dumper;
+
 sub new
 {
     my $class;
@@ -510,6 +615,10 @@ sub analyze
 
 package ClassMember;
 
+use strict;
+use warnings;
+use Data::Dumper;
+
 sub new
 {
     my $class;
@@ -522,6 +631,21 @@ sub new
 sub analyze
 {
     (my ClassMember $self, my Widget $widget) = @_;
+
+    print "ClassMember::analyze, before: ", Dumper($self, $widget), "\n";
+    # Test if this is an own field or an override for a superclass field
+    if (exists $self->{field}) {
+	$self->{code_class_decl} =
+	"        ".$self->{declaration}.";\n";
+
+	$self->{code_init_self} =
+	"        .".$self->{field}." = ".$self->{init_self}.";\n";
+
+	$self->{code_init_subclass} =
+	"        .".$self->{field}." = ".$self->{init_subclass}.";\n";
+
+    }
+    print "ClassMember::analyze, after ", Dumper($self, $widget), "\n";
 }
 
 package main;
@@ -768,7 +892,7 @@ $widget->{all_instance_part_instance_decls}
 
 /* New fields for the ${Name} class record */
 typedef struct {
-    //...
+$widget->{code_class_decl}
 } $widget->{class_record_part_type};
 
 /* Full class record declaration */
@@ -824,7 +948,7 @@ ${all_resources}
 };
 
 static struct $widget->{class_record_type} $widget->{class_record_instance} = {
-    // TODO
+$widget->{code_init_self}
 };
 
 $widget->{class_record_type} *$widget->{class_record_instance_ptr} = &$widget->{class_record_instance};

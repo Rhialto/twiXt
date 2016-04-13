@@ -1,23 +1,24 @@
 widget FooThing : BaseType {
     class {
-	override;
+	int foo_thing_int = 0xF001;
+	long foo_thing_long = 0xF002;
     }
     instance {
-	public: Pixel(Color) foreground = White;
-	public: Pixel(Color) background = (Black + White) / 2;
+	public: Pixel(Color) foreground = 0;
+	public: Pixel(Color) background = (0 + 0) / 2;
 	public: Int(Int) testint : int = 3;
     }
 };
 widget BaseType : Core {
     class {
-	dummy-class-member
+	int  classfield_int  = 1; sub= 2;
+	long classfield_long = 3; sub= 4;
     }
     instance {
     }
 };
 widget Core {
     class {
-	dummy-class-member
     }
     instance {
     }
