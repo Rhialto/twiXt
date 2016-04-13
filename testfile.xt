@@ -1,6 +1,6 @@
 widget FooThing : BaseType {
     class {
-	override
+	override;
     }
     instance {
 	public: Pixel(Color) foreground = White;

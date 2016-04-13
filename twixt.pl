@@ -107,6 +107,7 @@ sub override_class_member
     my $self = $_[0];
 
     $self->expect("override");
+    $self->expect(";");
 
     return ClassMember->new(
 	what => "override"
@@ -191,6 +192,69 @@ sub private_field_definition
     );
 }
 
+# Parse a C declaration, including stuff like
+# unsigned short int (*fp)(int, int);
+#
+# We can cheat a bit, since the first identifier in the rhs
+# is the variable name.
+# A CamelCase identifier is assumed to be a type name.
+# The variable/field name must be lower_case.
+
+sub c_declaration
+{
+    (my $self) = @_;
+
+    my $qualifiers = $self->sequence_of( sub {
+	    $self->token_kw(qw(const volatile))
+	});
+
+    my $declaratortype;
+
+    my $su;
+
+    if ($su = $self->token_kw(qw(struct union))) {
+	my $tag = $self->token_ident();
+	$declaratortype = $su." ".$tag;
+    } else {
+	my $basictypes = $self->sequence_of( sub {
+		$self->token_kw(qw(signed unsigned long short char int float double void))
+	    });
+	$declaratortype = join(" ", @$basictypes);
+    }
+
+    if (@$qualifiers) {
+	my $cv = join(" ", @$qualifiers);
+	$declaratortype = $cv." ".$declaratortype;
+    }
+
+    my $declarator = $self->substring_before(qr/[=;]/);
+    my $id;
+    my $cast_declarator;
+
+    # Find the identifier in the rhs.
+    # It is the first thing that looks like an identifier and is
+    # not const or volatile.
+    while ($declarator =~ /([a-zA-Z0-9_]+)/gp) {
+	my $matched = $1;
+	next if $matched eq "const";
+	next if $matched eq "volatile";
+	$id = $matched;
+	$cast_declarator = ${^PREMATCH}."__id__".${^POSTMATCH};
+	last;
+    }
+
+    my $declaration = $declaratortype." ".$declarator;
+    my $cast_declaration = $declaratortype." ".$cast_declarator;
+
+    return {
+	declaration             => $declaration,
+	cast_declaration        => $cast_declaration,
+	declaration_specifiers  => $declaratortype,
+	declarator              => $declarator,
+	id                      => $id,
+    };
+}
+
 # Meta-rule
 sub scope_of_block
 {
@@ -206,7 +270,7 @@ sub scope_of_block
 sub all_of
 {
     (my $self, my @codes) = @_;
-    
+
     my @result = ();
 
     for my $code (@codes) {
@@ -312,14 +376,14 @@ sub analyze
 
     if (defined $super && exists $allwidgets->{$super}) {
 	my $sclass = $allwidgets->{$super};
-	$self->{all_class_part_instance_decls} = 
+	$self->{all_class_part_instance_decls} =
 	    $sclass->{all_class_part_instance_decls} . $self->{class_part_instance_decl};
-	$self->{all_instance_part_instance_decls} = 
+	$self->{all_instance_part_instance_decls} =
 	    $sclass->{all_instance_part_instance_decls} . $self->{instance_part_instance_decl};
     } else {
-	$self->{all_class_part_instance_decls} = 
+	$self->{all_class_part_instance_decls} =
 	    $self->{class_part_instance_decl};
-	$self->{all_instance_part_instance_decls} = 
+	$self->{all_instance_part_instance_decls} =
 	    $self->{instance_part_instance_decl};
     }
 
@@ -385,11 +449,16 @@ sub analyze
 	}
 	$self->{repr} = $Repr;
     }
-    my $ctype = $main::common_reprname_to_ctype{$Repr};
+
+    my $ctype = $self->{ctype};
+
     if (! defined $ctype) {
-	$ctype = $Repr;
+	$ctype = $main::common_reprname_to_ctype{$Repr};
+	if (! defined $ctype) {
+	    $ctype = $Repr;
+	}
+	$self->{ctype} = $ctype;
     }
-    $self->{ctype} = $ctype;
 
     # A resource generates various things:
     # #define for resource name
@@ -415,6 +484,12 @@ sub analyze
 	      "    },\n";
 
     push @{$widget->{code_resources}}, [ $res, $self ];
+
+    # A field in the instance record
+
+    my $field = "    ${ctype} ${name};\n";
+
+    push @{$widget->{code_instance_record}}, [ $field, $self ];
 }
 
 package PrivateInstanceMember;
@@ -470,7 +545,7 @@ my %common_reprname_to_ctype = (
 sub main
 {
     my $parser = TwiXt->new(
-		    patterns => { 
+		    patterns => {
 			comment => qr/#.*$/
 		    }
 		);
@@ -486,7 +561,7 @@ sub main
 sub analyze_all
 {
     my $widgets = $_[0];
-    
+
     foreach my $key (keys %$widgets) {
 	$widgets->{$key}->analyze($widgets);
     }
@@ -611,6 +686,9 @@ sub generate_public_h_file
 #ifndef ${NAME}_H
 #define ${NAME}_H
 
+#include <X11/Intrinsic.h>
+#include <X11/StringDefs.h>
+
 /* Resource names */
 ${xtns}
 /* Resource classes */
@@ -624,7 +702,6 @@ ${xtrs}
 extern WidgetClass *${name}Class;
 
 /* C Widget type definition */
-typedef struct ${Name}Rec      *${Name};
 typedef struct $widget->{instance_record_type} *${Name};
 
 /* New class method entry points */
@@ -644,6 +721,24 @@ sub generate_private_h_file
     my $l_name = $widget->{l_name};
     my $Name = $widget->{Name};
 
+    my $superinclude = "";
+
+    my $super = $allwidgets->{$widget->{super}} if defined $widget->{super};
+
+    if (defined $super) {
+	$superinclude =
+	    "/* Include private header of superclass */\n".
+	    "#include <$super->{Private_h_file_name}>";
+    }
+
+    my $all_fields = "";
+
+    if (exists $widget->{code_instance_record}) {
+	for my $m (@{$widget->{code_instance_record}}) {
+	    $all_fields .= $m->[0];
+	}
+    }
+
     open FILE, ">", $Private_h_file_name;
     print FILE <<HERE_EOF;
 #ifndef ${NAME}P_H
@@ -652,14 +747,16 @@ sub generate_private_h_file
 /* Include public header */
 #include <$widget->{Public_h_file_name}>
 
+${superinclude}
+
 /* New representation types used by the ${Name} widget */
 
 /* New fields for the ${Name} instance record */
 typedef struct {
 /* Settable resources */
-     // ...
+${all_fields}
 /* Data derived from resources */
-     // ...
+     // TODO
 } $widget->{instance_part_type};
 
 /* Full instance record declaration */
@@ -712,14 +809,18 @@ sub generate_c_file
 
     open FILE, ">", $c_file_name;
     print FILE <<HERE_EOF;
+
+#include <stddef.h>
+#include <$widget->{Private_h_file_name}>
+
 /******************************************************************
  *
  * $Name Resources
  *
  ******************************************************************/
 
-static XtResource respources[] = {
-$all_resources
+static XtResource resources[] = {
+${all_resources}
 };
 
 static struct $widget->{class_record_type} $widget->{class_record_instance} = {
