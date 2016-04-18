@@ -36,7 +36,9 @@ sub parse
 # Parse a widget:
 #
 # widget FooWidget : Core {
-# 	...
+# 	... class overrides
+# 	... class member definitions
+# 	... instance member definitions
 # };
 #
 sub widget
@@ -54,7 +56,7 @@ sub widget
     }
 
     $self->commit();
-    my $members = $self->scope_of_block( sub {
+    my $members = $self->block_scope_of( sub {
 	$self->all_of(
 	    sub { $self->class_overrides(); },
 	    sub { $self->class_member_definitions(); },
@@ -62,20 +64,25 @@ sub widget
 	)
     } );
 
-#    print Dumper({
-#	Name    => $name,
-#	super   => $super,
-#	members => $members
-#    }), "\n";
+    my %class_overrides;
+    my $override_list = $members->[0];
+
+    for my $o (@{$override_list}) {
+	$class_overrides{$o->{name}} = $o;
+    }
+
     return Widget->new(
 	Name             => $name,
 	super            => $super,
-	class_overrides  => $members->[0],
+	class_overrides  => \%class_overrides, # $members->[0],
 	class_members    => $members->[1],
 	instance_members => $members->[2],
     );
 }
 
+# Several blocks of overrides:
+# one block per superclass, each block can contain
+# multiple fields in the superclass record to override.
 sub class_overrides
 {
     my $self = $_[0];
@@ -88,14 +95,14 @@ sub class_overrides
 
 	my $overridden = $self->ident_camelcase();
 
-	my $members = $self->scope_of_block( sub {
+	my $members = $self->block_scope_of( sub {
 	    $self->sequence_of ( sub {
 		$self->class_member_override()
 	    } )
 	} );
 
 	push @overrides, ClassOverride->new(
-	    name => $overridden,
+	    name   => $overridden,
 	    fields => $members,
 	);
 
@@ -128,7 +135,7 @@ sub class_member_definitions
     $self->expect("class");
     $self->commit();
 
-    $self->scope_of_block( sub {
+    $self->block_scope_of( sub {
 	$self->sequence_of ( sub {
 	    $self->class_member_definition()
 	} )
@@ -138,12 +145,6 @@ sub class_member_definitions
 sub class_member_definition
 {
     my $self = $_[0];
-
-#    $self->expect("dummy-class-member");
-
-#    return ClassMember->new(
-#	what => "dummy"
-#    );
 
     my $decl = $self->c_declaration();
     my $init_self;
@@ -196,7 +197,7 @@ sub instance_member_definitions
     $self->expect("instance");
     $self->commit();
 
-    $self->scope_of_block( sub {
+    $self->block_scope_of( sub {
 	$self->sequence_of ( sub {
 	    $self->any_of(
 		sub { $self->resource_definition(); },
@@ -317,29 +318,31 @@ sub c_declaration
     my $declarator = $self->substring_before(qr/[=;]/);
     print "c_declaration: after declarator: $declarator\n";
     my $id;
-    my $cast_declarator;
+    my $declarator_pattern;
 
     # Find the identifier in the rhs.
     # It is the first thing that looks like an identifier and is
     # not const or volatile.
+    # (Also skip things starting with _ in case they are weird keywords)
     while ($declarator =~ /([a-zA-Z0-9_]+)/gp) {
 	my $matched = $1;
 	next if $matched eq "const";
 	next if $matched eq "volatile";
+	next if substr($matched, 0, 1) eq "_";
 	$id = $matched;
-	$cast_declarator = ${^PREMATCH}."__id__".${^POSTMATCH};
+	$declarator_pattern = ${^PREMATCH}."%s".${^POSTMATCH};
 	last;
     }
-    if (!defined $cast_declarator) {
+    if (!defined $declarator_pattern) {
 	print "c_declaration: Can't find id in declarator $declarator\n";
     }
 
     my $declaration = $declaratortype." ".$declarator;
-    my $cast_declaration = $declaratortype." ".$cast_declarator;
+    my $declaration_pattern = $declaratortype." ".$declarator_pattern;
 
     return {
 	declaration             => $declaration,
-	cast_declaration        => $cast_declaration,
+	declaration_pattern     => $declaration_pattern,
 	declaration_specifiers  => $declaratortype,
 	declarator              => $declarator,
 	field                   => $id,
@@ -347,11 +350,15 @@ sub c_declaration
 }
 
 # Meta-rule
-sub scope_of_block
+sub block_scope_of
 {
-    (my $self, my $code) = @_;
+    my ($self, $code) = @_;
 
-    $self->scope_of( "{", $code, "}" );
+    my $result = $self->scope_of( "{", $code, "}" );
+
+    # $self->maybe_expect(";");
+
+    return $result;
 }
 
 # Meta-rule
@@ -360,7 +367,7 @@ sub scope_of_block
 # XXX Doesn't do fancy commit handling.
 sub all_of_try_1
 {
-    (my $self, my @codes) = @_;
+    my ($self, @codes) = @_;
 
     my @result = ();
 
@@ -447,16 +454,17 @@ sub analyze
 
     return if (exists $self->{analyzed});
 
-    print "Analyzing $self->{Name}\n";
 
     my $super = $self->{super};
     my $superclass;
 
     if (defined $super && exists $allwidgets->{$super}) {
 	$superclass = $allwidgets->{$super};
-	print "but first Analyzing $super\n";
+	print "First Analyzing $super before $self->{Name}\n";
 	$superclass->analyze($allwidgets);
     }
+
+    print "Analyzing $self->{Name}\n";
 
     $self->{analyzed}++;
 
@@ -586,8 +594,8 @@ sub analyze
 {
     (my Resource $self, my Widget $widget) = @_;
 
-    print "Resource::analyze self = ", Dumper($self), "\n";
-    print "Resource::analyze widget = ", Dumper($widget), "\n";
+    #print "Resource::analyze self = ", Dumper($self), "\n";
+    #print "Resource::analyze widget = ", Dumper($widget), "\n";
 
     my $l_name = $self->{field};
     my $Name = main::lower_case2CamelCase($l_name);
@@ -617,9 +625,17 @@ sub analyze
     # #define for resource name
     #                      class
     #                      representation
-    my $n = "#define XtN${name} \"${name}\"\n";
-    my $c = "#define XtC${Class} \"${Class}\"\n";
-    my $r = "#define XtR${Repr} \"${Repr}\"\n";
+    # TODO:
+    # For these 3 we can check if they are known to exist in <X11/StringDefs.h>
+    my $n = "#ifndef XtN${name}\n".
+            "# define XtN${name} \"${name}\"\n".
+	    "#endif\n";
+    my $c = "#ifndef XtC${Class}\n".
+            "# define XtC${Class} \"${Class}\"\n".
+	    "#endif\n";
+    my $r = "#ifndef XtR${Repr}\n".
+            "# define XtR${Repr} \"${Repr}\"\n".
+	    "#endif\n";
 
     push @{$widget->{code_xtn}}, [ $n, $self ];
     push @{$widget->{code_xtc}}, [ $c, $self ];
@@ -633,7 +649,7 @@ sub analyze
               "        sizeof (${ctype}),\n".
               "        XtOffsetOf($widget->{instance_record_type}, $widget->{l_name}.$l_name),\n".
               "        XtRImmediate,\n".	# TODO!
-              "        $self->{init},\n".
+              "        (XtPointer)($self->{init}),\n".
 	      "    },\n";
 
     push @{$widget->{code_resources}}, [ $res, $self ];
@@ -662,7 +678,7 @@ sub new
 
 sub analyze
 {
-    (my $self, my $arg) = @_;
+    (my ClassOverride $self, my Widget $widget) = @_;
 }
 
 package PrivateInstanceMember;
@@ -682,7 +698,7 @@ sub new
 
 sub analyze
 {
-    (my $self, my $arg) = @_;
+    (my PrivateInstanceMember $self, my Widget $arg) = @_;
 }
 
 package ClassMember;
@@ -704,20 +720,23 @@ sub analyze
 {
     (my ClassMember $self, my Widget $widget) = @_;
 
-    print "ClassMember::analyze, before: ", Dumper($self, $widget), "\n";
+    #print "ClassMember::analyze, before: ", Dumper($self, $widget), "\n";
     # Test if this is an own field or an override for a superclass field
     if (exists $self->{field}) {
 	$self->{code_class_decl} =
 	"        ".$self->{declaration}.";\n";
 
 	$self->{code_init_self} =
-	"        .".$self->{field}." = ".$self->{init_self}.";\n";
+	"        .".$self->{field}." = ".$self->{init_self}.",\n";
 
 	$self->{code_init_subclass} =
-	"        .".$self->{field}." = ".$self->{init_subclass}.";\n";
+	"        .".$self->{field}." = ".$self->{init_subclass}.",\n";
 
+	$self->{code_init_pattern} =
+	"        .".$self->{field}." = %s,\n";
     }
-    print "ClassMember::analyze, after ", Dumper($self, $widget), "\n";
+
+    #print "ClassMember::analyze, after ", Dumper($self, $widget), "\n";
 }
 
 package main;
@@ -859,19 +878,19 @@ sub generate_public_h_file
     my $xtcs = "";
     my $xtrs = "";
 
-    if (exists $widget->{code_xtn}) {
+    if (defined $widget->{code_xtn}) {
 	for my $m (@{$widget->{code_xtn}}) {
 	    $xtns .= $m->[0];
 	}
     }
 
-    if (exists $widget->{code_xtc}) {
+    if (defined $widget->{code_xtc}) {
 	for my $m (@{$widget->{code_xtc}}) {
 	    $xtcs .= $m->[0];
 	}
     }
 
-    if (exists $widget->{code_xtr}) {
+    if (defined $widget->{code_xtr}) {
 	for my $m (@{$widget->{code_xtr}}) {
 	    $xtrs .= $m->[0];
 	}
@@ -987,7 +1006,7 @@ HERE_EOF
 
 sub generate_c_file
 {
-    (my $widget, my $allwidgets) = @_;
+    my ($widget, $allwidgets) = @_;
 
     my $c_file_name = $widget->{c_file_name};
     my $NAME = $widget->{NAME};
@@ -997,7 +1016,7 @@ sub generate_c_file
 
     my $all_resources = "";
 
-    if (exists $widget->{code_resources}) {
+    if (defined $widget->{code_resources}) {
 	for my $m (@{$widget->{code_resources}}) {
 	    $all_resources .= $m->[0];
 	}
