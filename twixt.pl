@@ -1,13 +1,8 @@
 #!/usr/bin/env perl
+
 use strict;
 use warnings;
-
 use Data::Dumper;
-
-package main;
-
-use strict;
-use warnings;
 use TwiXt;
 use Widget;
 use Generator;
@@ -38,9 +33,12 @@ sub main
 
     my $tree = $parser->from_file("testfile.xt");
 
-    #print Dumper($tree), "\n";
+    #print "Returned from parser->from_file: ", Dumper($tree), "\n";
 
     analyze_all($tree);
+
+    print "Returned from analyze_all: ", Dumper($tree), "\n";
+
     generate_all($tree);
 
     return 0;

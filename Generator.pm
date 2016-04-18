@@ -3,7 +3,7 @@ package Generator;
 use strict;
 use warnings;
 
-use Data::Dumper;
+#use Data::Dumper;
 
 use Widget;
 
@@ -36,7 +36,7 @@ sub generate_public_h_file
 {
     (my $widget, my $allwidgets) = @_;
 
-    print "generate_public_h_file: widget = ", Dumper($widget), "\n";
+    #print "generate_public_h_file: widget = ", Dumper($widget), "\n";
 
     my $Public_h_file_name = $widget->{Public_h_file_name};
     my $NAME = $widget->{NAME};

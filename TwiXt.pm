@@ -4,11 +4,12 @@ use strict;
 use warnings;
 
 use parent 'Parser::MGC';
-use Data::Dumper;
+#use Data::Dumper;
 use ClassMember;
 use ClassOverride;
 use Resource;
 use Widget;
+use Utils ('hashed_list_of_hashes');
 
 sub parse
 {
@@ -20,14 +21,7 @@ sub parse
 	sub { $self->widget() }
     );
 
-    my %widget;
-
-    for my $w (@$widgets) {
-	$widget{$w->{Name}} = $w;
-    }
-
-    return \%widget;
-
+    return hashed_list_of_hashes("Name", $widgets);
 }
 
 ####
@@ -63,17 +57,18 @@ sub widget
 	)
     } );
 
-    my %class_overrides;
-    my $override_list = $members->[0];
+#    my %class_overrides;
+#    my $override_list = $members->[0];
 
-    for my $o (@{$override_list}) {
-	$class_overrides{$o->{name}} = $o;
-    }
+#    for my $o (@{$override_list}) {
+#	$class_overrides{$o->{name}} = $o;
+#    }
 
     return Widget->new(
 	Name             => $name,
 	super            => $super,
-	class_overrides  => \%class_overrides,
+	#class_overrides  => \%class_overrides,
+	class_overrides  => hashed_list_of_hashes('name', $members->[0]),
 	class_members    => $members->[1],
 	instance_members => $members->[2],
     );
@@ -102,7 +97,7 @@ sub class_overrides
 
 	push @overrides, ClassOverride->new(
 	    name   => $overridden,
-	    fields => $members,
+	    fields => hashed_list_of_hashes("field", $members),
 	);
 
     } );
@@ -280,15 +275,12 @@ sub c_declaration
 {
     (my $self) = @_;
 
-    print "c_declaration: before qualifiers\n";
     my $qualifiers = $self->sequence_of( sub {
 	    $self->token_kw(qw(const volatile))
 	});
-    print "c_declaration: after qualifiers: @{$qualifiers}\n";
 
     my $declaratortype;
 
-    print "c_declaration: before struct/union\n";
     $self->maybe(sub {
 	    my $token = $self->token_kw(qw(struct union));
 	    my $tag = $self->token_ident();
@@ -297,7 +289,6 @@ sub c_declaration
     if (defined $declaratortype) {
 	# struct/union part matched
     } else {
-	print "c_declaration: before basic types\n";
 	my $basictypes = $self->sequence_of( sub {
 		$self->token_kw(qw(signed unsigned long short char int float double void))
 	    });
@@ -305,7 +296,6 @@ sub c_declaration
 	    $self->fail("No type in C declaration");
 	}
 	$declaratortype = join(" ", @$basictypes);
-	print "c_declaration: after basic types: $declaratortype\n";
     }
 
     if (@$qualifiers) {
@@ -315,7 +305,6 @@ sub c_declaration
 
     $self->skip_ws();
     my $declarator = $self->substring_before(qr/[=;]/);
-    print "c_declaration: after declarator: $declarator\n";
     my $id;
     my $declarator_pattern;
 
@@ -333,7 +322,7 @@ sub c_declaration
 	last;
     }
     if (!defined $declarator_pattern) {
-	print "c_declaration: Can't find id in declarator $declarator\n";
+	warn "c_declaration: Can't find id in declarator $declarator\n";
     }
 
     my $declaration = $declaratortype." ".$declarator;

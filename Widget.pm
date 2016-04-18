@@ -3,6 +3,7 @@ package Widget;
 use strict;
 use warnings;
 use NameUtils;
+use Data::Dumper;
 
 sub new
 {
@@ -19,13 +20,16 @@ sub analyze
 
     return if (exists $self->{analyzed});
 
-
     my $super = $self->{super};
     my $superclass;
 
     if (defined $super && exists $allwidgets->{$super}) {
 	$superclass = $allwidgets->{$super};
-	print "First Analyzing $super before $self->{Name}\n";
+	$self->{superclass} = $superclass;
+    }
+
+    if (defined $superclass) {
+	print "First Analyzing $superclass->{Name} before $self->{Name}\n";
 	$superclass->analyze($allwidgets);
     }
 
@@ -81,6 +85,13 @@ sub analyze
 	    $self->{instance_part_instance_decl};
     }
 
+    # Analyze class_overrides
+    if (defined (my $overs = $self->{class_overrides})) {
+	foreach my $o (values %$overs) {
+	    $o->analyze($self);
+	}
+    }
+
     $self->{code_xtn} = [];
     $self->{code_xtc} = [];
     $self->{code_xtr} = [];
@@ -99,29 +110,8 @@ sub analyze
 
 	$self->{code_class_decl} = $classdecl;
 
-	my $init_self = "";
-	my $init_subclass = "";
-
-	if (defined $superclass) {
-	    $init_self     = $superclass->{code_init_subclass};
-	    $init_subclass = $superclass->{code_init_subclass};
-	}
-
-	$init_self .= "    { /* init_self $self->{Name} */\n";
-	foreach my $m (@$mems) {
-	    $init_self .= $m->{code_init_self};
-	}
-	$init_self .= "    }, /* $self->{Name} */\n";
-
-	$self->{code_init_self} = $init_self;
-
-	$init_subclass .= "    { /* init_subclass $self->{Name} */\n";
-	foreach my $m (@$mems) {
-	    $init_subclass .= $m->{code_init_subclass};
-	}
-	$init_subclass .= "    }, /* $self->{Name} */\n";
-
-	$self->{code_init_subclass} = $init_subclass;
+	$self->{code_init_self} = $self->
+	    analyze_init_class($self->{Name}, $self->{class_overrides});
     }
 
     # Analyze instance_members (type Resource and PrivateInstanceMember)
@@ -131,6 +121,111 @@ sub analyze
 	}
 
     }
+}
+
+# Generate some code to initialize the class fields of a class.
+#
+# There are a few cases:
+# There can be different initial values for a field when it is used
+# as the final class, or when it is used as a base class.
+# In the second case, there can be specific overrides in the final
+# class.
+#
+sub analyze_init_class
+{
+    (my Widget $self, my $for_class, my $overrides) = @_;
+
+    my $superclasses;
+    my $superclass = $self->{superclass};
+
+    if (defined $superclass) {
+	$superclasses = $superclass->analyze_init_class(
+				    $for_class, $overrides);
+    } else {
+	$superclasses = "";
+    }
+
+    my $thisclass = $self->analyze_init_with_field($for_class,
+					    $overrides->{$self->{Name}});
+
+    return $superclasses.$thisclass;
+}
+
+sub analyze_init_with_field
+{
+    (my Widget $self, my $for_class, my $overrides) = @_;
+
+    my $mems = $self->{class_members};
+    my $init;
+
+    if ($self->{Name} eq $for_class) {
+	$init = "init_self";
+    } else {
+	$init = "init_subclass";
+    }
+
+    my $overfields;
+    if (defined $overrides) {
+	$overfields = $overrides->{fields};
+    }
+
+    print "analyze_init_with_field: $self->{Name} for $for_class; overrides:\n",
+	    Dumper($overrides), "\n";
+
+    my $code = "    { /* $self->{Name} for $for_class */\n";
+    foreach my $m (@$mems) {
+	my $field = $m->{field};
+	my $value;
+
+	if (defined $overfields && exists $overfields->{$field}) {
+	    $value = $overfields->{$field}->{init};
+	} else {
+	    $value = $m->{$init};
+	}
+	$code .= sprintf $m->{code_init_pattern}, $value;
+    }
+    $code .= "    }, /* $self->{Name} */\n";
+
+    return $code;
+}
+
+sub superclass
+{
+    (my Widget $self) = @_;
+
+    return $self->{superclass};
+}
+
+sub rootclass
+{
+    (my Widget $self) = @_;
+
+    my $rootclass = $self;
+
+    while (1) {
+	my $parent = $rootclass->{superclass};
+	if (! defined $parent) {
+	    return $rootclass;
+	}
+	$rootclass = $parent;
+    }
+}
+
+sub is_subclass_of
+{
+    (my Widget $self, my $maybe_parent) = @_;
+
+    if ($self->{Name} eq $maybe_parent) {
+	return 1;
+    }
+
+    my $superclass = $self->{superclass};
+
+    if (!defined $superclass) {
+	return 0;
+    }
+
+    return $superclass->is_subclass_of($maybe_parent);
 }
 
 1;
