@@ -45,7 +45,7 @@ sub analyze
 	# For function pointers, create a #define to inherit it from
 	# the parent class. There is a default name for this define,
 	# but if a simple subclass initializer is given, use that as a name.
-	if ($type =~ /(Proc|Func)$/) {
+	if ($type =~ /(Proc|Func|Handler|Converter)$/) {
 	    my $field = $self->{field};
 	    my $Field = lower_case2CamelCase($field);
 	    my $Class = $widget->{Name};
