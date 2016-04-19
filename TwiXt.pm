@@ -57,18 +57,10 @@ sub widget
 	)
     } );
 
-#    my %class_overrides;
-#    my $override_list = $members->[0];
-
-#    for my $o (@{$override_list}) {
-#	$class_overrides{$o->{name}} = $o;
-#    }
-
     return Widget->new(
 	Name             => $name,
 	super            => $super,
-	#class_overrides  => \%class_overrides,
-	class_overrides  => hashed_list_of_hashes('name', $members->[0]),
+	class_overrides  => $members->[0],
 	class_members    => $members->[1],
 	instance_members => $members->[2],
     );
@@ -81,7 +73,7 @@ sub class_overrides
 {
     my $self = $_[0];
 
-    my @overrides = ();
+    my %overrides;
 
     $self->sequence_of( sub {
 	$self->expect("override");
@@ -95,14 +87,14 @@ sub class_overrides
 	    } )
 	} );
 
-	push @overrides, ClassOverride->new(
+	$overrides{$overridden} = ClassOverride->new(
 	    name   => $overridden,
 	    fields => hashed_list_of_hashes("field", $members),
 	);
 
     } );
 
-    return \@overrides;
+    return \%overrides;
 }
 
 sub class_member_override
@@ -293,6 +285,7 @@ sub c_declaration
 		$self->token_kw(qw(signed unsigned long short char int float double void))
 	    });
 	if (! @{$basictypes}) {
+	    # Here assume that for instance XtWidgetProc is a typedef.
 	    $self->fail("No type in C declaration");
 	}
 	$declaratortype = join(" ", @$basictypes);

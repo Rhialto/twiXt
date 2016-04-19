@@ -216,13 +216,13 @@ sub is_subclass_of
     (my Widget $self, my $maybe_parent) = @_;
 
     if ($self->{Name} eq $maybe_parent) {
-	return 1;
+	return $self;
     }
 
     my $superclass = $self->{superclass};
 
     if (!defined $superclass) {
-	return 0;
+	return undef;
     }
 
     return $superclass->is_subclass_of($maybe_parent);

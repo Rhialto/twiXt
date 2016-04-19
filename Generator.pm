@@ -66,6 +66,8 @@ sub generate_public_h_file
 	}
     }
 
+    my $rootclass = $widget->rootclass();
+
     open FILE, ">", $Public_h_file_name;
     print FILE <<HERE_EOF;
 #ifndef ${NAME}_H
@@ -84,7 +86,7 @@ ${xtrs}
 /* New resources */
 
 /* Class record pointer */
-extern WidgetClass *${name}Class;
+extern WidgetClass $widget->{class_record_instance_ptr};
 
 /* C Widget type definition */
 typedef struct $widget->{instance_record_type} *${Name};
@@ -161,9 +163,6 @@ typedef struct $widget->{class_record_type} {
 $widget->{all_class_part_instance_decls}
 } $widget->{class_record_type};
 
-/* Class record variable */
-extern $widget->{class_record_type} *$widget->{class_record_instance_ptr};
-
 /* defines */
 #define ${Name}InheritSetText ((${Name}SetTextProc)_XtInherit)
 #define ${Name}InheritGetText ((${Name}GetTextProc)_XtInherit)
@@ -192,6 +191,8 @@ sub generate_c_file
 	}
     }
 
+    my $rootclass = $widget->rootclass();
+
     open FILE, ">", $c_file_name;
     print FILE <<HERE_EOF;
 
@@ -212,7 +213,15 @@ static struct $widget->{class_record_type} $widget->{class_record_instance} = {
 $widget->{code_init_self}
 };
 
-$widget->{class_record_type} *$widget->{class_record_instance_ptr} = &$widget->{class_record_instance};
+/*
+ * Declare this as WidgetClass instead of the "more real" types
+ * $widget->{class_record_type} * or $rootclass->{class_record_type} *,
+ * because Xt functions such as XtCreateWidget() take an argument of that type.
+ * The definition of WidgetClass in <X11/Core.h> is
+ * typedef struct _WidgetClassRec *CoreWidgetClass;
+ * where Widget is a strange alias of Core.
+ */
+WidgetClass $widget->{class_record_instance_ptr} = (WidgetClass)&$widget->{class_record_instance}.$rootclass->{l_name}_class;
 
 HERE_EOF
 }

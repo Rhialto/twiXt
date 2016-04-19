@@ -24,12 +24,6 @@ sub analyze
 	$self->{code_class_decl} =
 	"        ".$self->{declaration}.";\n";
 
-#	$self->{code_init_self} =
-#	"        .".$self->{field}." = ".$self->{init_self}.",\n";
-#
-#	$self->{code_init_subclass} =
-#	"        .".$self->{field}." = ".$self->{init_subclass}.",\n";
-
 	$self->{code_init_pattern} =
 	"        .".$self->{field}." = %s,\n";
     }

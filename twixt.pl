@@ -1,4 +1,6 @@
 #!/usr/bin/env perl
+#
+# Use  perl -d:Confess twixt.pl for debugging.
 
 use strict;
 use warnings;
