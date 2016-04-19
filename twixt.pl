@@ -27,8 +27,8 @@ sub main
 {
     my $parser = TwiXt->new(
 		    patterns => {
-			comment => qr/#.*$/
-		    }
+			comment => qr/#.*$/m,
+		    },
 		);
 
     my $tree = $parser->from_file("testfile.xt");
