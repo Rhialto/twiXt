@@ -21,7 +21,7 @@ widget BaseType : Core {
 	int  classfield_int  = 1; sub= 2;
 	long classfield_long = 3; sub= 4;
 	# If the type ends in Proc or Func, #define XtInherit<Field> ...
-	# XtWidgetProc destroy = BaseTypeDestroy; sub= XtInheritDestroy;
+	XtWidgetProc destroy = BaseTypeDestroy; sub= XtInheritDestroy;
     }
     instance {
     }

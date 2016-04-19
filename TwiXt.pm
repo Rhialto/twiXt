@@ -284,11 +284,17 @@ sub c_declaration
 	my $basictypes = $self->sequence_of( sub {
 		$self->token_kw(qw(signed unsigned long short char int float double void))
 	    });
-	if (! @{$basictypes}) {
-	    # Here assume that for instance XtWidgetProc is a typedef.
-	    $self->fail("No type in C declaration");
+	if (@{$basictypes}) {
+	    $declaratortype = join(" ", @$basictypes);
+	} else {
+	    # Here assume that for instance "XtWidgetProc" is a typedef.
+	    my $id = $self->ident_camelcase();
+	    if (defined $id) {
+		$declaratortype = $id;
+	    } else {
+		$self->fail("No type in C declaration");
+	    }
 	}
-	$declaratortype = join(" ", @$basictypes);
     }
 
     if (@$qualifiers) {
