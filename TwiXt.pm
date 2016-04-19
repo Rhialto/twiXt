@@ -17,7 +17,7 @@ sub parse
 
     $self->skip_ws();
 
-    my $widgets = $self->list_of( ";",
+    my $widgets = $self->list_of( qr/;/,
 	sub { $self->widget() }
     );
 
@@ -43,7 +43,7 @@ sub widget
     my $name = $self->ident_camelcase();
 
     my $super;
-    my $hassuper = $self->maybe_expect(":");
+    my $hassuper = $self->maybe_expect(qr/:/);
     if ($hassuper) {
 	$super = $self->ident_camelcase();
     }
@@ -103,9 +103,9 @@ sub class_member_override
 
     my $parts = $self->all_of(
 	sub { $self->ident_lowercase() },
-	sub { $self->expect("=") },
-	sub { $self->substring_before(";") },
-	sub { $self->expect(";") },
+	sub { $self->expect(qr/=/) },
+	sub { $self->substring_before(qr/;/) },
+	sub { $self->expect(qr/;/) },
     );
 
     return {
@@ -136,18 +136,18 @@ sub class_member_definition
     my $init_self;
     my $init_subclass;
 
-    if ($self->maybe_expect("=")) {
+    if ($self->maybe_expect(qr/=/)) {
 	$self->skip_ws();
-	$init_self = $self->substring_before(";");
-	$self->expect(";");
+	$init_self = $self->substring_before(qr/;/);
+	$self->expect(qr/;/);
     } else {
 	$init_self = "0";
     }
 
     if ($self->maybe_expect("sub=")) {
 	$self->skip_ws();
-	$init_subclass = $self->substring_before(";");
-	$self->expect(";");
+	$init_subclass = $self->substring_before(qr/;/);
+	$self->expect(qr/;/);
     } else {
 	$init_subclass = $init_self;
     }
@@ -164,7 +164,7 @@ sub override_class_member
     my $self = $_[0];
 
     $self->expect("override");
-    $self->expect(";");
+    $self->expect(qr/;/);
 
     return ClassMember->new(
 	what => "override"
@@ -204,31 +204,31 @@ sub resource_definition
     my $init = undef;
     my $ctype = undef;
 
-    $self->expect("public");
-    $self->expect(":");
+    $self->expect(qr/public/);
+    $self->expect(qr/:/);
     $self->commit();
 
     my $repr = $self->ident_camelcase();
-    if ($self->maybe_expect("(")) {
+    if ($self->maybe_expect(qr/(/)) {
 	$class = $self->ident_camelcase();
-	$self->expect(")");
+	$self->expect(qr/)/);
     }
     my $field = $self->ident_lowercase();
 
-    if ($self->maybe_expect(":")) {
+    if ($self->maybe_expect(qr/:/)) {
 	$self->skip_ws();
 	$ctype = $self->substring_before(qr/[=;]/);
     }
 
-    if ($self->maybe_expect("=")) {
+    if ($self->maybe_expect(qr/=/)) {
 	$self->skip_ws();
-	$init = $self->substring_before(";");
+	$init = $self->substring_before(qr/;/);
 	length $init or $self->fail( "Expected a C initializer expression ';'" );
     } else {
 	$init = "0";
     }
 
-    $self->expect(";");
+    $self->expect(qr/;/);
 
     return Resource->new(
 	field     => $field,
@@ -248,7 +248,7 @@ sub private_field_definition
 
     my $decl = $self->c_declaration();
 
-    $self->expect(";");
+    $self->expect(qr/;/);
 
     return PrivateInstanceMember->new(
 	%{$decl}
@@ -341,9 +341,9 @@ sub block_scope_of
 {
     my ($self, $code) = @_;
 
-    my $result = $self->scope_of( "{", $code, "}" );
+    my $result = $self->scope_of( qr/{/, $code, qr/}/ );
 
-    # $self->maybe_expect(";");
+    # $self->maybe_expect(qr/;/);
 
     return $result;
 }
