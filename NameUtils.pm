@@ -8,7 +8,9 @@ our @EXPORT = qw(	anycase2UPPERCASE
 			CamelCase2camelCase
 			CamelCase2lower_case
 			lower_case2camelCase
-			lower_case2CamelCase);
+			lower_case2CamelCase
+			is_CamelCase
+			);
 our @EXPORT_OK = @EXPORT;
 	
 use Data::Dumper;
@@ -74,6 +76,16 @@ sub lower_case2CamelCase
     $name =~ s/^([a-z])/\u$1/g;
 
     return $name;
+}
+
+#
+# Check if an identifier is pure CamelCase
+#
+sub is_CamelCase
+{
+    my $name = $_[0];
+
+    return $name =~ /^[[:upper:][:alnum:]]*$/;
 }
 
 1;

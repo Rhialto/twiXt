@@ -16,20 +16,20 @@ widget FooThing : BaseType {
 	public: Int(Int) testint : int = 3;
     }
 };
-widget BaseType : Core {
+widget BaseType : Root {
     class {
 	int  classfield_int  = 1; sub= 2;
 	long classfield_long = 3; sub= 4;
-	# If the type ends in Proc or Func, #define XtInherit<Field> ...
-	XtWidgetProc destroy = BaseTypeDestroy; sub= XtInheritDestroy;
+	# If the type ends in Proc or Func, #define ...InheritDestroy ...
+	XtWidgetProc destroy = BaseTypeDestroy; sub= NonDefaultNameForInheritDestroy;
+	XtExposeProc expose = BaseTypeExpose; sub= 0;
     }
     instance {
     }
 };
-widget Core {
+widget Root {
     class {
     }
     instance {
     }
 }
-# A Comment

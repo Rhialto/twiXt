@@ -131,12 +131,20 @@ sub generate_private_h_file
 #ifndef ${NAME}P_H
 #define ${NAME}P_H
 
+#include <X11/IntrinsicP.h>
+
 /* Include public header */
 #include <$widget->{Public_h_file_name}>
 
 ${superinclude}
 
 /* New representation types used by the ${Name} widget */
+
+/* Declarations for class functions */
+$widget->{declare_class_functions}
+
+/* Defines for inheriting superclass function pointer values */
+$widget->{inherit_defines}
 
 /* New fields for the ${Name} instance record */
 typedef struct {
@@ -162,11 +170,6 @@ $widget->{code_class_decl}
 typedef struct $widget->{class_record_type} {
 $widget->{all_class_part_instance_decls}
 } $widget->{class_record_type};
-
-/* defines */
-#define ${Name}InheritSetText ((${Name}SetTextProc)_XtInherit)
-#define ${Name}InheritGetText ((${Name}GetTextProc)_XtInherit)
-
 
 #endif /* ${NAME}P_H */
 HERE_EOF
@@ -215,13 +218,20 @@ $widget->{code_init_self}
 
 /*
  * Declare this as WidgetClass instead of the "more real" types
- * $widget->{class_record_type} * or $rootclass->{class_record_type} *,
+ *
+ *     $widget->{class_record_type} * or $rootclass->{class_record_type} *,
+ *
  * because Xt functions such as XtCreateWidget() take an argument of that type.
+ *
  * The definition of WidgetClass in <X11/Core.h> is
- * typedef struct _WidgetClassRec *CoreWidgetClass;
+ *
+ *     typedef struct _WidgetClassRec *CoreWidgetClass;
+ *
  * where Widget is a strange alias of Core.
  */
 WidgetClass $widget->{class_record_instance_ptr} = (WidgetClass)&$widget->{class_record_instance}.$rootclass->{l_name}_class;
 
+/* Definitions for class functions */
+$widget->{define_class_functions}
 HERE_EOF
 }

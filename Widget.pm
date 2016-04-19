@@ -85,6 +85,10 @@ sub analyze
 	    $self->{instance_part_instance_decl};
     }
 
+    $self->{inherit_defines} = "";
+    $self->{declare_class_functions} = "";
+    $self->{define_class_functions} = "";
+
     # Analyze class_overrides
     if (defined (my $overs = $self->{class_overrides})) {
 	foreach my $o (values %$overs) {
