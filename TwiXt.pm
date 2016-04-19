@@ -209,9 +209,9 @@ sub resource_definition
     $self->commit();
 
     my $repr = $self->ident_camelcase();
-    if ($self->maybe_expect(qr/(/)) {
+    if ($self->maybe_expect(qr/\(/)) {
 	$class = $self->ident_camelcase();
-	$self->expect(qr/)/);
+	$self->expect(qr/\)/);
     }
     my $field = $self->ident_lowercase();
 
