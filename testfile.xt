@@ -1,32 +1,48 @@
 #
 # Compile with gcc -I. -I/usr/X11R7/include -c FooThing.c
 #
+# The widget FooThing is based on widget BaseType.
+# That means that it adds to both its class fields and its instance fields.
+
 widget FooThing : BaseType {
     override BaseType {
+	# We would like a different value for our version of the
+	# class field BaseType.classfield_int.
 	classfield_int = 99;
     }
+    # These are our own class fields
     class {
 	int foo_thing_int = 0xF001;
 	long foo_thing_long = 0xF002;
 	void (*funcptr)(int, int) = 0;
     }
+    # And these are our instance fields.
     instance {
 	public: Pixel(Color) foreground = 0;
 	public: Pixel(Color) background = (0 + 0) / 2;
 	public: Int(Int) testint : int = 3;
     }
 };
+
 widget BaseType : Root {
     class {
+	# For class fields you can specify a different default value
+	# for derived classes. Typically this would be a special
+	# "inherit from superclass" value such ias XtInheritDestroy.
 	int  classfield_int  = 1; sub= 2;
 	long classfield_long = 3; sub= 4;
+
 	# If the type ends in Proc or Func, #define ...InheritDestroy ...
+	# If the subclass init value contains Inherit, that name is used
+	# instead of BaseTypeInheritDestroy (class + Inherit + field name).
 	XtWidgetProc destroy = BaseTypeDestroy; sub= NonDefaultNameForInheritDestroy;
-	XtExposeProc expose = BaseTypeExpose; sub= 0;
+	# %s is replaced here by the class name.
+	XtExposeProc expose = %sExpose; sub= %sExpose;
     }
     instance {
     }
 };
+
 widget Root {
     class {
     }

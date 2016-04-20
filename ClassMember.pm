@@ -53,6 +53,22 @@ sub analyze
 	    my $init_subclass = $self->{init_subclass};
 	    my $init_self = $self->{init_self};
 
+	    # todo: factor to function...
+	    if (!$init_subclass) {
+		$self->{init_subclass} = $init_subclass = "%s".$Field;
+	    }
+	    if (!$init_self) {
+		$self->{init_self} = $init_self = "%s".$Field;
+	    }
+
+	    # If it contains a pattern, plug in the class name
+	    if ($init_subclass =~ /%/) {
+		$init_subclass = sprintf $init_subclass, $Class;
+	    }
+	    if ($init_self =~ /%/) {
+		$init_self = sprintf $init_self, $Class;
+	    }
+
 	    my $defname = "${Class}Inherit${Field}";
 	    my $defval  = "((${type}) _XtInherit)";
 
@@ -61,7 +77,9 @@ sub analyze
 		$defname = $init_subclass;
 	    }
 
-	    my $define = "#define $defname $defval\n";
+	    my $define = "#ifndef $defname\n".
+	                 "# define $defname $defval\n".
+			 "#endif\n";
 
 	    $widget->{inherit_defines} .= $define;
 
@@ -69,14 +87,14 @@ sub analyze
 
 	    # Pre-declare and define the function.
 	    if (is_CamelCase($init_self)) {
-		# Declaration
+		# Declaration: FooFunc %s(int, long)
 		my $pat = funcTypedef2declaration($type, $self->{declaration_pattern});
 		my $declare = sprintf $pat, $init_self;
 
 		$widget->{declare_class_functions} .= "extern ${declare};\n";
 
 
-		# Definition
+		# Definition: FooFunc %s(int i, long l)
 		$pat = funcTypedef2definition($type, $self->{declaration_pattern});
 		my $define = sprintf $pat, $init_self;
 

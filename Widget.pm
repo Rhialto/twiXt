@@ -186,6 +186,9 @@ sub analyze_init_with_field
 	} else {
 	    $value = $m->{$init};
 	}
+	if ($value =~ /%/) {
+	    $value = sprintf $value, $for_class;
+	}
 	$code .= sprintf $m->{code_init_pattern}, $value;
     }
     $code .= "    }, /* $self->{Name} */\n";
