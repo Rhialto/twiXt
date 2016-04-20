@@ -6,6 +6,8 @@ use warnings;
 use Exporter 'import'; # gives you Exporter's import() method directly
 our @EXPORT = qw( funcTypedef2declaration
                   funcTypedef2definition
+		  common_class_to_reprname
+		  common_reprname_to_ctype
    );
 our @EXPORT_OK = @EXPORT;
  
@@ -114,6 +116,7 @@ sub parseX11header
 	    my $lines = $_;
 	    $lines =~ s/\(\*$name\)/%s/;
 	    $lines =~ s/^typedef //;
+
 	    for (;;) {
 		my $nextline = <$header>;
 		chomp $nextline;
@@ -141,6 +144,46 @@ if ($0 eq "Lookup.pm" && $ARGV[0] eq "parse") {
     for my $k (sort keys %collected) {
 	printf "    %-24s => '%s',\n", $k, $collected{$k};
     }
+}
+
+# Only needs to contain the non-identity mappings.
+# No XtR will be prepended.
+my %common_class_to_reprname = (
+    Depth  => "Int",
+    Background => "XtRColor",
+    Accelerators => "XtRAcceleratorTable",
+    Translations => "XtRTranslatorTable",
+);
+
+# Only needs to contain the non-identity mappings.
+my %common_reprname_to_ctype = (
+    "Int" => "int",
+    "Long" => "long",
+    "Screen" => "Screen *",
+);
+
+sub common_class_to_reprname 
+{
+    my $Class = $_[0];
+
+    my $Repr = $common_class_to_reprname{$Class};
+    if (! defined $Repr) {
+	$Repr = $Class;
+    }
+
+    return $Repr;
+}
+
+sub common_reprname_to_ctype
+{
+    my $Repr = $_[0];
+
+    my $ctype = $common_reprname_to_ctype{$Repr};
+    if (! defined $ctype) {
+	$ctype = $Repr;
+    }
+
+    return $ctype;
 }
 
 1;

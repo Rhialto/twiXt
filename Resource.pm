@@ -5,6 +5,7 @@ package Resource;
 use strict;
 use warnings;
 use Data::Dumper;
+use Lookup;
 use NameUtils;
 use Widget;
 
@@ -36,20 +37,14 @@ sub analyze
     my $Repr = $self->{repr};
 
     if (! defined $Repr) {
-	$Repr = $main::common_class_to_reprname{$Class};
-	if (! defined $Repr) {
-	    $Repr = $Class;
-	}
+	$Repr = common_class_to_reprname($Class);
 	$self->{repr} = $Repr;
     }
 
     my $ctype = $self->{ctype};
 
     if (! defined $ctype) {
-	$ctype = $main::common_reprname_to_ctype{$Repr};
-	if (! defined $ctype) {
-	    $ctype = $Repr;
-	}
+	$ctype = common_reprname_to_ctype($Repr);
 	$self->{ctype} = $ctype;
     }
 

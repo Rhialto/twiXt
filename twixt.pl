@@ -9,22 +9,6 @@ use TwiXt;
 use Widget;
 use Generator;
 
-# Only needs to contain the non-identity mappings.
-# No XtR will be prepended.
-my %common_class_to_reprname = (
-    Depth  => "Int",
-    Background => "XtRColor",
-    Accelerators => "XtRAcceleratorTable",
-    Translations => "XtRTranslatorTable",
-);
-
-# Only needs to contain the non-identity mappings.
-my %common_reprname_to_ctype = (
-    "Int" => "int",
-    "Long" => "long",
-    "Screen" => "Screen *",
-);
-
 sub main
 {
     my $parser = TwiXt->new(
