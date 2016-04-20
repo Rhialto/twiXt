@@ -13,13 +13,10 @@ our @EXPORT_OK = @EXPORT;
 
 sub generate_all
 {
-    my $hash = $_[0];
+    my $allwidgets = $_[0];
 
-    my $key;
-    my $value;
-
-    while (($key, $value) = each %$hash) {
-	generate_one($value, $hash);
+    for my $key (sort keys %{$allwidgets}) {
+	generate_one($allwidgets->{$key}, $allwidgets);
     }
 }
 
@@ -34,7 +31,7 @@ sub generate_one
 
 sub generate_public_h_file
 {
-    (my $widget, my $allwidgets) = @_;
+    (my Widget $widget, my $allwidgets) = @_;
 
     #print "generate_public_h_file: widget = ", Dumper($widget), "\n";
 
@@ -100,7 +97,7 @@ HERE_EOF
 
 sub generate_private_h_file
 {
-    (my $widget, my $allwidgets) = @_;
+    (my Widget $widget, my $allwidgets) = @_;
 
     my $Private_h_file_name = $widget->{Private_h_file_name};
     my $NAME = $widget->{NAME};
@@ -178,7 +175,7 @@ HERE_EOF
 
 sub generate_c_file
 {
-    my ($widget, $allwidgets) = @_;
+    (my Widget $widget, my $allwidgets) = @_;
 
     my $c_file_name = $widget->{c_file_name};
     my $NAME = $widget->{NAME};
