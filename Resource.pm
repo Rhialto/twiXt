@@ -8,6 +8,13 @@ use Data::Dumper;
 use Lookup;
 use NameUtils;
 use Widget;
+use fields qw(
+    class
+    ctype
+    field
+    init
+    repr
+);
 
 sub new
 {

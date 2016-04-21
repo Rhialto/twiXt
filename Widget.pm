@@ -4,6 +4,41 @@ use strict;
 use warnings;
 use NameUtils;
 use Data::Dumper;
+use fields qw(
+    all_class_part_instance_decls
+    all_instance_part_instance_decls
+    analyzed
+    class_members
+    class_overrides
+    class_part_instance_decl
+    class_record_instance
+    class_record_instance_ptr
+    class_record_part_type
+    class_record_type
+    code_class_decl
+    code_init_self
+    code_instance_record
+    code_resources
+    code_xtc
+    code_xtn
+    code_xtr
+    c_file_name
+    declare_class_functions
+    define_class_functions
+    inherit_defines
+    instance_members
+    instance_part_instance_decl
+    instance_part_type
+    instance_record_type
+    l_name
+    NAME
+    Name
+    name
+    Private_h_file_name
+    Public_h_file_name
+    super
+    superclass
+);
 
 sub new
 {

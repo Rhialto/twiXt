@@ -3,6 +3,8 @@ package PrivateInstanceMember;
 use strict;
 use warnings;
 use Data::Dumper;
+use fields qw(
+);
 
 sub new
 {

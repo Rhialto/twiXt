@@ -4,6 +4,10 @@ use strict;
 use warnings;
 use Data::Dumper;
 use Widget;
+use fields qw(
+    fields
+    name
+);
 
 sub new
 {

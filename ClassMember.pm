@@ -6,24 +6,30 @@ use Data::Dumper;
 use Widget;
 use NameUtils;
 use Lookup;
+use fields qw(
+    code_class_decl
+    code_init_pattern
+    declaration
+    declaration_pattern
+    declaration_specifiers
+    declarator
+    field
+    init_self
+    init_subclass
+);
+#   With a field description such as
+#   void (*funcptr)(int, int), then
+#
+# declaration			= void (*funcptr)(int, int)
+# declaration_pattern		= void (*%s)(int, int)
+# declaration_specifiers	= void
+# declarator			= (*funcptr)(int, int)
+# field				= funcptr
 
 sub new
 {
-    my $class;
-    my @fields;
-    ($class, @fields) = @_;
+    (my $class, my @fields) = @_;
 
-    # init_self
-    # init_subclass
-    # declaration			void (*funcptr)(int, int)
-    # declaration_pattern		void (*%s)(int, int)
-    # declaration_specifiers		void
-    # declarator			(*funcptr)(int, int)
-    # field
-    #
-    # With a field description such as
-    # void (*funcptr)(int, int), then
-    #
     bless { @fields }, $class;
 }
 
