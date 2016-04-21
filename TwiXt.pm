@@ -10,6 +10,7 @@ use ClassOverride;
 use Resource;
 use Widget;
 use Utils ('hashed_list_of_hashes');
+use NameUtils;
 
 sub parse
 {
@@ -400,7 +401,7 @@ sub ident_camelcase
 
     my $token = $self->token_ident();
 
-    if ($token =~ /_/ || $token !~ /^[[:upper:]]/) {
+    if (! is_CamelCase($token)) {
 	$self->fail("Identifier should be CamelCase");
     }
 
@@ -414,7 +415,7 @@ sub ident_lowercase
 
     my $token = $self->token_ident();
 
-    if ($token =~ /[[:upper:]]/) {
+    if (! is_lower_case($token)) {
 	$self->fail("Identifier should be lower_case");
     }
 

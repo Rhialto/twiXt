@@ -10,6 +10,7 @@ our @EXPORT = qw(	anycase2UPPERCASE
 			lower_case2camelCase
 			lower_case2CamelCase
 			is_CamelCase
+			is_lower_case
 			);
 our @EXPORT_OK = @EXPORT;
 	
@@ -85,7 +86,17 @@ sub is_CamelCase
 {
     my $name = $_[0];
 
-    return $name =~ /^[[:upper:][:alnum:]]*$/;
+    return $name =~ /^[[:upper:]][[:alnum:]]*$/;
+}
+
+#
+# Check if an identifier is pure lower_case
+#
+sub is_lower_case
+{
+    my $name = $_[0];
+
+    return $name =~ /^[[:lower:]_][[:lower:][:digit:]_]*$/;
 }
 
 1;
