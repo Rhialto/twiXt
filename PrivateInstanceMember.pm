@@ -8,9 +8,7 @@ use fields qw(
 
 sub new
 {
-    my $class;
-    my @fields;
-    ($class, @fields) = @_;
+    (my $class, my @fields) = @_;
 
     bless { @fields }, $class;
 }
