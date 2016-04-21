@@ -121,10 +121,6 @@ sub analyze_function_pointer
     my $type = $self->is_function_pointer();
 
     if (defined $type) {
-	my $field = $self->{field};
-	my $Field = lower_case2CamelCase($field);
-	my $Class = $widget->{Name};
-
 	# Pre-declare and define the function, if needed and appropriate.
 	if ($value !~ /Inherit/ && is_CamelCase($value)) {
 	    # Declaration: FooFunc %s(int, long)
