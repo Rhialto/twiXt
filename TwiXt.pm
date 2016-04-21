@@ -138,20 +138,26 @@ sub class_member_definition
     my $init_self;
     my $init_subclass;
 
-    if ($self->maybe_expect(qr/=/)) {
-	$self->skip_ws();
-	$init_self = $self->substring_before(qr/;/);
-	$self->expect(qr/;/);
+    if ($self->maybe_expect(qr/;/)) {
+	# ok, no initialisation then.
+	$init_self     = "0";
+	$init_subclass = "0";
     } else {
-	$init_self = "0";
-    }
+	if ($self->maybe_expect(qr/=/)) {
+	    $self->skip_ws();
+	    $init_self = $self->substring_before(qr/;/);
+	    $self->expect(qr/;/);
+	} else {
+	    $init_self = "0";
+	}
 
-    if ($self->maybe_expect("sub=")) {
-	$self->skip_ws();
-	$init_subclass = $self->substring_before(qr/;/);
-	$self->expect(qr/;/);
-    } else {
-	$init_subclass = $init_self;
+	if ($self->maybe_expect("sub=")) {
+	    $self->skip_ws();
+	    $init_subclass = $self->substring_before(qr/;/);
+	    $self->expect(qr/;/);
+	} else {
+	    $init_subclass = $init_self;
+	}
     }
 
     my $comment = $self->maybe_comment();

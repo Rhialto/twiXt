@@ -9,6 +9,7 @@ use Lookup;
 use fields qw(
     code_class_decl
     code_init_pattern
+    comment
     declaration
     declaration_pattern
     declaration_specifiers
@@ -42,13 +43,15 @@ sub analyze
     (my ClassMember $self, my Widget $widget) = @_;
 
     #print "ClassMember::analyze, before: ", Dumper($self), "\n";
+    my $comment = $self->{comment} || "";
+
     # Test if this is an own field or an override for a superclass field
     if (exists $self->{field}) {
 	$self->{code_class_decl} =
-	"        ".$self->{declaration}.";\n";
+	"        ".$self->{declaration}."; $comment\n";
 
 	$self->{code_init_pattern} =
-	"        .".$self->{field}." = %s,\n";
+	"        .".$self->{field}." = %s, $comment\n";
 
 	my $type = $self->is_function_pointer();
 
