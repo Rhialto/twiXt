@@ -91,7 +91,7 @@ sub analyze
 
     # A field in the instance record
 
-    my $field = "    ${ctype} ${name}; $comment\n";
+    my $field = "    ${ctype} ${l_name}; $comment\n";
 
     push @{$widget->{code_instance_record}}, [ $field, $self ];
 }
