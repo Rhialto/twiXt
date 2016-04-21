@@ -9,6 +9,7 @@ use Lookup;
 use NameUtils;
 use Widget;
 use fields qw(
+    comment
     class
     ctype
     field
@@ -53,6 +54,8 @@ sub analyze
 	$self->{ctype} = $ctype;
     }
 
+    my $comment = $self->{comment} || "";
+
     # A resource generates various things:
     # #define for resource name
     #                      class
@@ -74,7 +77,7 @@ sub analyze
     push @{$widget->{code_xtr}}, [ $r, $self ];
 
     # A structure for resource init and get/set
-    my $res = "    {\n".
+    my $res = "    { $comment\n".
               "        XtN${name},\n".
               "        XtC${Class},\n".
               "        XtR${Repr},\n".
@@ -88,7 +91,7 @@ sub analyze
 
     # A field in the instance record
 
-    my $field = "    ${ctype} ${name};\n";
+    my $field = "    ${ctype} ${name}; $comment\n";
 
     push @{$widget->{code_instance_record}}, [ $field, $self ];
 }

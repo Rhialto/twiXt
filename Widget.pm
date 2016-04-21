@@ -156,7 +156,6 @@ sub analyze
 	foreach my $m (@$mems) {
 	    $m->analyze($self);
 	}
-
     }
 }
 

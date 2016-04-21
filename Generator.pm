@@ -80,8 +80,6 @@ ${xtcs}
 /* Resource representation types */
 ${xtrs}
 
-/* New resources */
-
 /* Class record pointer */
 extern WidgetClass $widget->{class_record_instance_ptr};
 
@@ -145,10 +143,8 @@ $widget->{inherit_defines}
 
 /* New fields for the ${Name} instance record */
 typedef struct {
-/* Settable resources */
+    /* Settable resources and private data */
 ${all_fields}
-/* Data derived from resources */
-     // TODO
 } $widget->{instance_part_type};
 
 /* Full instance record declaration */

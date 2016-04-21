@@ -18,9 +18,10 @@ widget FooThing : BaseType {
     }
     # And these are our instance fields.
     instance {
-	public: Pixel(Color) foreground = 0;
+	public: Pixel(Color) foreground = 0;	/* comment on foreground */
 	public: Pixel(Color) background = (0 + 0) / 2;
 	public: Int(Int) testint : int = 3;
+	private: long int long_int_field;
     }
 };
 

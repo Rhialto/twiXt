@@ -7,14 +7,15 @@ use parent 'Parser::MGC';
 #use Data::Dumper;
 use ClassMember;
 use ClassOverride;
-use Resource;
-use Widget;
-use Utils ('hashed_list_of_hashes');
 use NameUtils;
+use PrivateInstanceMember;
+use Resource;
+use Utils ('hashed_list_of_hashes');
+use Widget;
 
 sub parse
 {
-    my $self = $_[0];
+    my TwiXt $self = $_[0];
 
     $self->skip_ws();
 
@@ -37,7 +38,7 @@ sub parse
 #
 sub widget
 {
-    my $self = $_[0];
+    my TwiXt $self = $_[0];
 
     $self->expect("widget");
 
@@ -72,7 +73,7 @@ sub widget
 # multiple fields in the superclass record to override.
 sub class_overrides
 {
-    my $self = $_[0];
+    my TwiXt $self = $_[0];
 
     my %overrides;
 
@@ -100,7 +101,7 @@ sub class_overrides
 
 sub class_member_override
 {
-    my $self = $_[0];
+    my TwiXt $self = $_[0];
 
     my $parts = $self->all_of(
 	sub { $self->ident_lowercase() },
@@ -117,7 +118,7 @@ sub class_member_override
 
 sub class_member_definitions
 {
-    my $self = $_[0];
+    my TwiXt $self = $_[0];
 
     $self->expect("class");
     $self->commit();
@@ -131,7 +132,7 @@ sub class_member_definitions
 
 sub class_member_definition
 {
-    my $self = $_[0];
+    my TwiXt $self = $_[0];
 
     my $decl = $self->c_declaration();
     my $init_self;
@@ -153,22 +154,13 @@ sub class_member_definition
 	$init_subclass = $init_self;
     }
 
+    my $comment = $self->maybe_comment();
+
     return ClassMember->new(
 	%{$decl},
 	init_self     => $init_self,
 	init_subclass => $init_subclass,
-    );
-}
-
-sub override_class_member
-{
-    my $self = $_[0];
-
-    $self->expect("override");
-    $self->expect(qr/;/);
-
-    return ClassMember->new(
-	what => "override"
+	comment       => $comment,
     );
 }
 
@@ -179,7 +171,7 @@ sub override_class_member
 
 sub instance_member_definitions
 {
-    my $self = $_[0];
+    my TwiXt $self = $_[0];
 
     $self->expect("instance");
     $self->commit();
@@ -199,7 +191,7 @@ sub instance_member_definitions
 
 sub resource_definition
 {
-    my $self = $_[0];
+    my TwiXt $self = $_[0];
 
     my $class = undef;
     my $init = undef;
@@ -231,18 +223,21 @@ sub resource_definition
 
     $self->expect(qr/;/);
 
+    my $comment = $self->maybe_comment();
+
     return Resource->new(
 	field     => $field,
 	repr      => $repr,
 	class     => $class,
 	ctype     => $ctype,
 	init      => $init,
+	comment   => $comment,
     );
 }
 
 sub private_field_definition
 {
-    my $self = $_[0];
+    my TwiXt $self = $_[0];
 
     $self->expect("private:");
     $self->commit();
@@ -251,8 +246,11 @@ sub private_field_definition
 
     $self->expect(qr/;/);
 
+    my $comment = $self->maybe_comment();
+
     return PrivateInstanceMember->new(
-	%{$decl}
+	%{$decl},
+	comment => $comment,
     );
 }
 
@@ -266,7 +264,7 @@ sub private_field_definition
 
 sub c_declaration
 {
-    (my $self) = @_;
+    (my TwiXt $self) = @_;
 
     my $qualifiers = $self->sequence_of( sub {
 	    $self->token_kw(qw(const volatile))
@@ -340,7 +338,7 @@ sub c_declaration
 # Meta-rule
 sub block_scope_of
 {
-    my ($self, $code) = @_;
+    (my TwiXt $self, my $code) = @_;
 
     my $result = $self->scope_of( qr/{/, $code, qr/}/ );
 
@@ -355,7 +353,7 @@ sub block_scope_of
 # XXX Doesn't do fancy commit handling.
 sub all_of_try_1
 {
-    my ($self, @codes) = @_;
+    (my TwiXt $self, my @codes) = @_;
 
     my @result = ();
 
@@ -369,7 +367,7 @@ sub all_of_try_1
 # A merge between any_of and list_of
 sub all_of #_try_2
 {
-    my $self = shift;
+    my TwiXt $self = shift;
     my @ret = ();
 
     while (@_ && !$self->at_eos) {
@@ -397,7 +395,7 @@ sub all_of #_try_2
 # CamelCase
 sub ident_camelcase
 {
-    my $self = $_[0];
+    my TwiXt $self = $_[0];
 
     my $token = $self->token_ident();
 
@@ -411,7 +409,7 @@ sub ident_camelcase
 # lower_case
 sub ident_lowercase
 {
-    my $self = $_[0];
+    my TwiXt $self = $_[0];
 
     my $token = $self->token_ident();
 
@@ -420,6 +418,22 @@ sub ident_lowercase
     }
 
     return $token;
+}
+
+sub maybe_comment
+{
+    my TwiXt $self = $_[0];
+
+    my $comment;
+
+    if ($self->maybe_expect(qr=/\*=)) {
+	my $text = $self->substring_before(qr=\*/=);
+	$self->expect(qr=\*/=);
+
+	$comment = "/*$text*/";
+    }
+
+    return $comment;
 }
 
 1;
