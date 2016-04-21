@@ -27,6 +27,10 @@ sub new
     bless { @fields }, $class;
 }
 
+#
+# This is called for every classmember while analyzing its class.
+#
+
 sub analyze
 {
     (my ClassMember $self, my Widget $widget) = @_;
@@ -40,33 +44,28 @@ sub analyze
 	$self->{code_init_pattern} =
 	"        .".$self->{field}." = %s,\n";
 
-	my $type = $self->{declaration_specifiers};
+	my $type = $self->is_function_pointer();
 
 	# For function pointers, create a #define to inherit it from
 	# the parent class. There is a default name for this define,
 	# "${Class}Inherit${Field}",
 	# but if a simple subclass initializer is given, use that as a name.
-	if ($type =~ /(Proc|Func|Handler|Converter)$/) {
+
+	if (defined $type) {
 	    my $field = $self->{field};
 	    my $Field = lower_case2CamelCase($field);
 	    my $Class = $widget->{Name};
 	    my $init_subclass = $self->{init_subclass};
-	    my $init_self = $self->{init_self};
 
-	    # todo: factor to function...
-	    if (!$init_subclass) {
+	    # Is this a good idea?
+	    # and if so, should it be here?
+	    if (!$init_subclass) { # undef or "0" or the like
 		$self->{init_subclass} = $init_subclass = "%s".$Field;
-	    }
-	    if (!$init_self) {
-		$self->{init_self} = $init_self = "%s".$Field;
 	    }
 
 	    # If it contains a pattern, plug in the class name
 	    if ($init_subclass =~ /%/) {
 		$init_subclass = sprintf $init_subclass, $Class;
-	    }
-	    if ($init_self =~ /%/) {
-		$init_self = sprintf $init_self, $Class;
 	    }
 
 	    my $defname = "${Class}Inherit${Field}";
@@ -83,27 +82,58 @@ sub analyze
 
 	    $widget->{inherit_defines} .= $define;
 
-	    print "DEFINE: $define";
-
-	    # Pre-declare and define the function.
-	    if (is_CamelCase($init_self)) {
-		# Declaration: FooFunc %s(int, long)
-		my $pat = funcTypedef2declaration($type, $self->{declaration_pattern});
-		my $declare = sprintf $pat, $init_self;
-
-		$widget->{declare_class_functions} .= "extern ${declare};\n";
-
-
-		# Definition: FooFunc %s(int i, long l)
-		$pat = funcTypedef2definition($type, $self->{declaration_pattern});
-		my $define = sprintf $pat, $init_self;
-
-		$widget->{define_class_functions} .= "${define}\n{\n}\n\n";
-	    }
+	    #print "DEFINE: $define";
 	}
     }
 
     #print "ClassMember::analyze, after ", Dumper($self, $widget), "\n";
 }
 
+sub is_function_pointer
+{
+    my ClassMember $self = $_[0];
+
+    my $type = $self->{declaration_specifiers};
+
+    if ($type =~ /(Proc|Func|Handler|Converter)$/) {
+	return $type;
+    }
+
+    return undef;
+}
+
+#
+# This is called multiple times for each ClassMember:
+# once for each instantiation, which means it will be called for its own
+# class and for each of the subclasses which include it.
+#
+
+sub analyze_function_pointer
+{
+    (my ClassMember $self, my Widget $widget, my Widget $for_class, my $value) = @_;
+
+    my $type = $self->is_function_pointer();
+
+    if (defined $type) {
+	my $field = $self->{field};
+	my $Field = lower_case2CamelCase($field);
+	my $Class = $widget->{Name};
+
+	# Pre-declare and define the function, if needed and appropriate.
+	if ($value !~ /Inherit/ && is_CamelCase($value)) {
+	    # Declaration: FooFunc %s(int, long)
+	    my $pat = funcTypedef2declaration($type, $self->{declaration_pattern});
+	    my $declare = sprintf $pat, $value;
+
+	    $for_class->{declare_class_functions} .= "extern ${declare};\n";
+
+
+	    # Definition: FooFunc %s(int i, long l)
+	    $pat = funcTypedef2definition($type, $self->{declaration_pattern});
+	    my $define = sprintf $pat, $value;
+
+	    $for_class->{define_class_functions} .= "${define}\n{\n}\n\n";
+	}
+    }
+}
 1;

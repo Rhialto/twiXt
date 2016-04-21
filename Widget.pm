@@ -115,7 +115,7 @@ sub analyze
 	$self->{code_class_decl} = $classdecl;
 
 	$self->{code_init_self} = $self->
-	    analyze_init_class($self->{Name}, $self->{class_overrides});
+	    analyze_init_class($self, $self->{class_overrides});
     }
 
     # Analyze instance_members (type Resource and PrivateInstanceMember)
@@ -137,7 +137,7 @@ sub analyze
 #
 sub analyze_init_class
 {
-    (my Widget $self, my $for_class, my $overrides) = @_;
+    (my Widget $self, my Widget $for_class, my $overrides) = @_;
 
     my $superclasses;
     my $superclass = $self->{superclass};
@@ -157,12 +157,12 @@ sub analyze_init_class
 
 sub analyze_init_with_field
 {
-    (my Widget $self, my $for_class, my $overrides) = @_;
+    (my Widget $self, my Widget $for_class, my $overrides) = @_;
 
     my $mems = $self->{class_members};
     my $init;
 
-    if ($self->{Name} eq $for_class) {
+    if ($self->{Name} eq $for_class->{Name}) {
 	$init = "init_self";
     } else {
 	$init = "init_subclass";
@@ -173,10 +173,10 @@ sub analyze_init_with_field
 	$overfields = $overrides->{fields};
     }
 
-    print "analyze_init_with_field: $self->{Name} for $for_class; overrides:\n",
+    print "analyze_init_with_field: $self->{Name} for $for_class->{Name}; overrides:\n",
 	    Dumper($overrides), "\n";
 
-    my $code = "    { /* $self->{Name} for $for_class */\n";
+    my $code = "    { /* $self->{Name} for $for_class->{Name} */\n";
     foreach my $m (@$mems) {
 	my $field = $m->{field};
 	my $value;
@@ -187,9 +187,11 @@ sub analyze_init_with_field
 	    $value = $m->{$init};
 	}
 	if ($value =~ /%/) {
-	    $value = sprintf $value, $for_class;
+	    $value = sprintf $value, $for_class->{Name};
 	}
 	$code .= sprintf $m->{code_init_pattern}, $value;
+
+	$m->analyze_function_pointer($self, $for_class, $value);
     }
     $code .= "    }, /* $self->{Name} */\n";
 
