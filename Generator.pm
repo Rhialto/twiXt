@@ -16,22 +16,22 @@ sub generate_all
     my $allwidgets = $_[0];
 
     for my $key (sort keys %{$allwidgets}) {
-	generate_one($allwidgets->{$key}, $allwidgets);
+	generate_one($allwidgets->{$key});
     }
 }
 
 sub generate_one
 {
-    (my Widget $widget, my $allwidgets) = @_;
+    (my Widget $widget) = @_;
 
-    generate_public_h_file($widget, $allwidgets);
-    generate_private_h_file($widget, $allwidgets);
-    generate_c_file($widget, $allwidgets);
+    generate_public_h_file($widget);
+    generate_private_h_file($widget);
+    generate_c_file($widget);
 }
 
 sub generate_public_h_file
 {
-    (my Widget $widget, my $allwidgets) = @_;
+    (my Widget $widget) = @_;
 
     #print "generate_public_h_file: widget = ", Dumper($widget), "\n";
 
@@ -97,7 +97,7 @@ HERE_EOF
 
 sub generate_private_h_file
 {
-    (my Widget $widget, my $allwidgets) = @_;
+    (my Widget $widget) = @_;
 
     my $Private_h_file_name = $widget->{Private_h_file_name};
     my $NAME = $widget->{NAME};
@@ -107,12 +107,12 @@ sub generate_private_h_file
 
     my $superinclude = "";
 
-    my $super = $allwidgets->{$widget->{super}} if defined $widget->{super};
+    my $superclass = $widget->{superclass};
 
-    if (defined $super) {
+    if (defined $superclass) {
 	$superinclude =
 	    "/* Include private header of superclass */\n".
-	    "#include <$super->{Private_h_file_name}>";
+	    "#include <$superclass->{Private_h_file_name}>";
     }
 
     my $all_fields = "";
@@ -175,7 +175,7 @@ HERE_EOF
 
 sub generate_c_file
 {
-    (my Widget $widget, my $allwidgets) = @_;
+    (my Widget $widget) = @_;
 
     my $c_file_name = $widget->{c_file_name};
     my $NAME = $widget->{NAME};
