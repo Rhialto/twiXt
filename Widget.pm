@@ -172,7 +172,7 @@ sub analyze_init_class
     (my Widget $self, my Widget $for_class, my $overrides) = @_;
 
     my $superclasses;
-    my $superclass = $self->{superclass};
+    my Widget $superclass = $self->{superclass};
 
     if (defined $superclass) {
 	$superclasses = $superclass->analyze_init_class(
@@ -219,7 +219,7 @@ sub analyze_init_with_field
 	    $value = $m->{$init};
 	}
 	if ($value =~ /%/) {
-	    $value = sprintf $value, $for_class->{Name};
+	    $value = $for_class->expand_pattern($value);
 	}
 	$code .= sprintf $m->{code_init_pattern}, $value;
 
@@ -267,6 +267,88 @@ sub is_subclass_of
     }
 
     return $superclass->is_subclass_of($maybe_parent);
+}
+
+# Expand pattern:
+# %c	class
+# %s	superclass
+#
+# with modifiers (before the c, s, or f)
+# none	CamelCase
+# _	lower_case	%_c
+# l	camelCase	%ls
+
+sub expand_pattern
+{
+    (my Widget $self, my $pattern) = @_;
+
+    #print STDERR "expand_pattern: pattern = $pattern\n";
+
+    if ($pattern =~ /%/) {
+	my $result = "";
+
+	while ($pattern =~ /%([_l]?)([cs%])/p) {
+	    $result .= ${^PREMATCH};
+	    my $format = $&;
+	    $pattern = ${^POSTMATCH};	# for next iteration
+
+	    my $modifier    = $1 || "";
+	    my $valueletter = $2;
+
+	    #print STDERR "rest pattern= $pattern\n";
+	    #print STDERR "format      = $format\n";
+	    #print STDERR "result      = $result\n";
+	    #print STDERR "valueletter = $valueletter; modifier = $modifier\n";
+
+	    if ($format eq "%%") {
+		$result .= "%";
+	    } else {
+		my $replacement = "";
+
+
+		if ($valueletter eq "c") {
+		    $replacement = $self->{Name};
+		} elsif ($valueletter eq "s") {
+		    if (defined $self->{superclass}) {
+			$replacement = $self->{superclass}->{Name};
+		    } else {
+			$replacement = $self->{Name};
+		    }
+		}
+
+		#print STDERR "replacement1 = $replacement\n";
+		if ($modifier eq "l") {
+		    $replacement = CamelCase2camelCase($replacement);
+		} elsif ($modifier eq "_") {
+		    $replacement = CamelCase2lower_case($replacement);
+		}
+		#print STDERR "replacement2 = $replacement\n";
+
+		$result .= $replacement;
+	    }
+
+	}
+
+	$result .= $pattern;
+
+	return $result;
+    } else {
+	return $pattern;
+    }
+}
+
+if ($0 eq "Widget.pm") {
+    my $widget = Widget->new(
+	Name => "ClassName",
+	superclass => Widget->new(
+	    Name => "SuperClass",
+	)
+    );
+
+    print STDERR $widget->expand_pattern("CamelCase:  %%c  %c  %%s  %s\n");
+    print STDERR $widget->expand_pattern("camelCase:  %%lc %lc  %%ls %ls\n");
+    print STDERR $widget->expand_pattern("camel_case: %%_c %_c %%_s %_s\n");
+    print STDERR $widget->expand_pattern("camel_case: %%_x %_x %%_x %_x\n");
 }
 
 1;

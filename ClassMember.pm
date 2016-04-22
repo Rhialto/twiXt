@@ -69,12 +69,12 @@ sub analyze
 	    # Is this a good idea?
 	    # and if so, should it be here?
 	    if (!$init_subclass) { # undef or "0" or the like
-		$self->{init_subclass} = $init_subclass = "%s".$Field;
+		$self->{init_subclass} = $init_subclass = "%c".$Field;
 	    }
 
 	    # If it contains a pattern, plug in the class name
 	    if ($init_subclass =~ /%/) {
-		$init_subclass = sprintf $init_subclass, $Class;
+		$init_subclass = $widget->expand_pattern($init_subclass);
 	    }
 
 	    my $defname = "${Class}Inherit${Field}";
