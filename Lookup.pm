@@ -155,11 +155,44 @@ my %common_class_to_reprname = (
     Translations => "XtRTranslatorTable",
 );
 
-# Only needs to contain the non-identity mappings.
+# Each resource type name (which is a string) has a corresponding
+# C type which implements it. Usually this is the name without its
+# initial XtR. TwiXt usually spells it without this prefix anyway.
+# This hash contains the exceptions (from intrinsics.pdf chapter 9, page 142)
 my %common_reprname_to_ctype = (
-    "Int" => "int",
-    "Long" => "long",
-    "Screen" => "Screen *",
+    AcceleratorTable => "XtAccelerators",
+    Bitmap           => "Pixmap",	# depth = 1
+    Callback         => "XtCallbackList",
+    Color            => "XColor",
+    CommandArgArray  => "String *",
+    DirectoryString  => "String",
+    Display          => "Display *",
+    Enum             => "XtEnum",
+    EnvironmentArray => "String *",
+    File             => "FILE *",
+    Float            => "float",
+    FontStruct       => "XFontStruct *",
+    Function         => "(*)()",
+    Geometry         => "char *",	# format as defined by XParseGeometry
+    Gravity          => "int",
+    InitialState     => "int ",
+    Int              => "int",
+    LongBoolean      => "long",
+    Pointer          => "XtPointer",
+    RestartStyle     => "unsigned char",
+    Screen           => "Screen *",
+    Short            => "short",
+    SmcConn          => "XtPointer",
+    StringArray      => "String *",
+    StringTable      => "String *",
+    TranslationTable => "XtTranslations",
+
+    EditMode         => undef,
+    Justify          => undef,
+    Orientation      => undef,
+
+    CallProc         => undef,	# typedef void (*XtResourceDefaultProc)(Widget w, int offset, XrmValue *value)
+    Immediate        => undef,
 );
 
 sub common_class_to_reprname 
