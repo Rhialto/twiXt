@@ -202,6 +202,7 @@ sub resource_definition
     my $class = undef;
     my $init = undef;
     my $ctype = undef;
+    my $default_type = "XtRImmediate";
 
     $self->expect(qr/public/);
     $self->expect(qr/:/);
@@ -219,10 +220,27 @@ sub resource_definition
 	$ctype = $self->substring_before(qr/[=;]/);
     }
 
-    if ($self->maybe_expect(qr/=/)) {
+    my $has_init = 0;
+    # =R(FooType)
+    if (my $string = $self->maybe_expect(qr/=R\(([A-Za-z0-9]+)\)/)) {
+	$string =~ /=R\(([A-Za-z0-9]+)\)/;
+	$default_type = "XtR".$1;
+	$has_init++;
+    } elsif ($self->maybe_expect(qr/=/)) {
+	$default_type = "XtRImmediate";
+	$has_init++;
+    }
+
+    if ($has_init) {
 	$self->skip_ws();
 	$init = $self->substring_before(qr/;/);
 	length $init or $self->fail( "Expected a C initializer expression ';'" );
+
+	$init =~ s/\s+$//;	# strip trailing spaces
+
+	if ($init =~ s/\(\)$//) {
+	    $default_type = "XtRCallProc";
+	}
     } else {
 	$init = "0";
     }
@@ -232,12 +250,13 @@ sub resource_definition
     my $comment = $self->maybe_comment();
 
     return Resource->new(
-	field     => $field,
-	repr      => $repr,
-	class     => $class,
-	ctype     => $ctype,
-	init      => $init,
-	comment   => $comment,
+	field        => $field,
+	repr         => $repr,
+	class        => $class,
+	ctype        => $ctype,
+	default_type => $default_type,
+	default_addr => $init,
+	comment      => $comment,
     );
 }
 

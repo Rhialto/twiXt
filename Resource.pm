@@ -12,8 +12,9 @@ use fields qw(
     comment
     class
     ctype
+    default_type
+    default_addr
     field
-    init
     repr
 );
 
@@ -78,18 +79,19 @@ sub analyze
 
     # A structure for resource init and get/set
     my $res = "    { $comment\n".
-              "        XtN${name},\n".
-              "        XtC${Class},\n".
-              "        XtR${Repr},\n".
-              "        sizeof (${ctype}),\n".
-              "        XtOffsetOf($widget->{instance_record_type}, $widget->{l_name}.$l_name),\n".
-              "        XtRImmediate,\n".	# TODO!
-              "        (XtPointer)($self->{init}),\n".
+              "        .resource_name   = XtN${name},\n".
+              "        .resource_class  = XtC${Class},\n".
+              "        .resource_type   = XtR${Repr},\n".
+              "        .resource_size   = sizeof (${ctype}),\n".
+              "        .resource_offset = XtOffsetOf($widget->{instance_record_type}, $widget->{l_name}.$l_name),\n".
+              "        .default_type    = $self->{default_type},\n".
+              "        .default_addr    = (XtPointer)($self->{default_addr}),\n".
 	      "    },\n";
 
     push @{$widget->{code_resources}}, [ $res, $self ];
 
-    # A field in the instance record
+    # A field in the instance record.
+    # Do we need to implement {ctype} as a sprintf-pattern too?
 
     my $field = "    ${ctype} ${l_name}; $comment\n";
 
