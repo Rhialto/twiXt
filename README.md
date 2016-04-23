@@ -203,7 +203,7 @@ Resources consist of the following parts:
   construction as seen in the CoreWidget:
   <pre><code>
     private:  XtTMRec       tm;                 /* translation management  */
-    resource: TranslationTable(Translations) translations @tm.translations
+    resource: TranslationTable(Translations) translations <b>@tm.translations</b>
                      =R(TranslationTable) NULL; /* translation management  */
    </code></pre>
 
@@ -216,13 +216,15 @@ Resources consist of the following parts:
 
 - default_type:
   Resources can be initialized by the resource system automatically.
-  This field specifies the type of `default_addr`.  
-  In the example, this is `String` (transformed into `XtRString`).  
+  This field specifies the type of `default_addr`.
+
+  In the example, this is `String` (transformed into `XtRString`).
+
   There is special syntax for the special types
     * `XtRImmediate` (which copies the value without converting it):
       just use a simple `=` sign
     * `XtRCallProc` (which calls a function of signature
-      `XtResourceDefaultProc`): use `= FunctionName()`.
+      [`XtResourceDefaultProc`](http://www.x.org/releases/X11R7.7/doc/libXt/intrinsics.html#XtResourceDefaultProc)): use `= FunctionName()`.
 
 - default_addr:
   This should point to an appropriate value of the type named by
@@ -236,8 +238,8 @@ like
     resource: ResourceType(ResourceClass) resource_name :resource_size_type @resource_offset
                      =R(DefaultType) default_addr;
 
-For more details, see chapter 9 "Resource Management" of the Intrinsics
-document.
+For more details, see [chapter 9 "Resource Management" of the Intrinsics
+document](http://www.x.org/releases/X11R7.7/doc/libXt/intrinsics.html#Resource_Management).
 
 {>>
  vim:expandtab:ft=markdown:
