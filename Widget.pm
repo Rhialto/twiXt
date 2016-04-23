@@ -289,7 +289,7 @@ sub expand_pattern
 
 	while ($pattern =~ /%([_l]?)([cs%])/p) {
 	    $result .= ${^PREMATCH};
-	    my $format = $&;
+	    my $format = ${^MATCH}; # $&;
 	    $pattern = ${^POSTMATCH};	# for next iteration
 
 	    my $modifier    = $1 || "";
