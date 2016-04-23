@@ -26,7 +26,7 @@ of the widget.
 Then there are the fields that exist once for each widget instance.
 Therefore the outline of a widget description generally looks like this:
 
-```
+<pre><code>
 widget Name : BaseClass {
     class {
         # fields ...
@@ -35,10 +35,14 @@ widget Name : BaseClass {
         # fields ...
     }
 };
-```
+</code></pre>
+
 For more details on this, please see the X Toolkit Intrinsics
 documentation.  TwiXt aims to make use of Xt easier, but fully
 explaining it is beyond its scope.
+
+See [Free O'Reilly books](http://www.x.org/wiki/ProgrammingDocumentation/) and
+[the X.org website](http://www.x.org/releases/X11R7.7/doc/index.html#client-devel).
 
 Class fields
 ------------
@@ -50,7 +54,7 @@ be accessed by the user. This is the case for the fields that correspond
 to a Resource. In addition to those, there can of course also be private
 fields.
 
-```
+<pre><code>
     class {
         WidgetClass superclass = (WidgetClass)&unnamedObjClassRec; sub= (WidgetClass)&%lsClassRec; 
                                                           /* pointer to superclass ClassRec   */
@@ -59,7 +63,7 @@ fields.
         XtProc      class_initialize = %cClassInitialize; /* class initialization proc        */
         # ...
     }
-```
+</code></pre>
 
 Class field descriptions look very much like normal C declarations.
 There are some general conventions:
@@ -109,7 +113,7 @@ own class. However you can override that with an `override` block before
 your own `class` block (because that is the order in which the full class
 record is generated):
 
-```
+<pre></code>
 class SubClass : BaseClass {
     override BaseClass {
         # We would like a different value for our version of the
@@ -118,7 +122,7 @@ class SubClass : BaseClass {
     }
     class {
         # ...
-```
+</code></pre>
 
 It is checked that `BaseClass` is indeed a superclass of the current
 widget, an that `classfield_int` is one of its class fields.
@@ -132,14 +136,13 @@ This is the case for the fields that correspond to a Resource. In
 addition to those, there can of course also be private fields.
 Here are some examples of both cases:
 
-```
+<pre></code>
 widget Root {
     instance {
         private: Widget         self;               /* pointer to widget itself */
         public:  Pixel(BorderColor) border_color
                   =R(String) "XtDefaultForeground"; /* window border pixel      */
-
-```
+</code></pre>
 
 Private fields are the simplest. They are much like a C field
 declaration. There is not even an initial value like with class fields,
@@ -154,89 +157,85 @@ out.
 
 Resources consist of the following parts:
 
-resource_name
-:   The name to use with XtSetValues() and XtGetValues() to access
-    the resource. This is in principle an arbitrary string, but
-    conventionally it is in camelCase (lower case initial).
-    To prevent typos in the name, a `#define` is generated with the same
-    name: `XtN`_resourceName_.
+- resource_name:
+  The name to use with XtSetValues() and XtGetValues() to access
+  the resource. This is in principle an arbitrary string, but
+  conventionally it is in camelCase (lower case initial).
+  An instance field with lower_case name is also generated from this
+  name.
+  To prevent typos in the name, a `#define` is generated with the same
+  name: `XtN`_resourceName_.  
 
-    In the example, this is border_color.
+  In the example, this is border_color.
 
-resource_class
-:   Not to be confused with "class" as in the meaning of "type", but
-    a name to group multiple related resources together. The aim is that
-    the user can easily set all Background-related colours to the same
-    value in a resource file. Resource classes are spelled in CamelCase
-    (upper case initial).
-    To prevent typos in the name, a `#define` is generated with the same
-    name: `XtN`_ClassName_.
+- resource_class:
+  Not to be confused with "class" as in the meaning of "type", but
+  a name to group multiple related resources together. The aim is that
+  the user can easily set all Background-related colours to the same
+  value in a resource file. Resource classes are spelled in CamelCase
+  (upper case initial).
+  To prevent typos in the name, a `#define` is generated with the same
+  name: `XtN`_ClassName_.
 
-    In the example, this is BorderColor.
+  In the example, this is BorderColor.
 
-resource_type
-:   This is the name of the type which represents the value of the
-    resource. Xt type converters know of these names to convert for
-    instance strings into the correct values.
-    To prevent typos in the name, a `#define` is generated with the same
-    name: `XtR`_ResourceType_.
+- resource_type:
+  This is the name of the type which represents the value of the
+  resource. Xt type converters know of these names to convert for
+  instance strings into the correct values.
+  To prevent typos in the name, a `#define` is generated with the same
+  name: `XtR`_ResourceType_.
 
-    In the example, this is Pixel.
+  In the example, this is Pixel.
 
-resource_size
-:   This is the size of objects of type `resource_type`. Normally this
-    is derived from the `resource_type` field. If you want to make an
-    exception, use `: ctypename` after the `resource_name`. This type is
-    then also used in generating the instance field.
+- resource_size:
+  This is the size of objects of type `resource_type`. Normally this
+  is derived from the `resource_type` field. If you want to make an
+  exception, use `: ctypename` after the `resource_name`. This type is
+  then also used in generating the instance field.
 
-resource_offset
-:   This describes where in the instance record the resource is located.
-    It is pretty much always derived automatically from the instance field
-    (which in turn is derived from `resource_name`).
+- resource_offset:
+  This describes where in the instance record the resource is located.
+  It is pretty much always derived automatically from the instance field
+  (which in turn is derived from `resource_name`).  
+  In the rare cases that you have a resource which does not have a
+  one-to-one correspondence with an instance field, use this
+  construction as seen in the CoreWidget:
+  <pre><code>
+    private:  XtTMRec       tm;                 /* translation management  */
+    resource: TranslationTable(Translations) translations @tm.translations
+                     =R(TranslationTable) NULL; /* translation management  */
+   </code></pre>
 
-    In the rare cases that you have a resource which does not have a
-    one-to-one correspondence with an instance field, use this
-    construction as seen in the CoreWidget:
+  Here, the instance contains a `XtTMRec` structure, and the resource
+  refers to one if its internal fields.
+  By using the `resource` keyword instead of `public`, you indicate
+  that no field is generated to go with the resource. Use an
+  appropriate other field instead. It also allows the use of the `@`
+  which is not allowed for `public`.
 
-    ```
-        private:  XtTMRec       tm;                 /* translation management  */
-        resource: TranslationTable(Translations) translations @tm.translations
-                         =R(TranslationTable) NULL; /* translation management  */
-    ```
-    Here, the instance contains a `XtTMRec` structure, and the resource
-    refers to one if its internal fields.
-    By using the `resource` keyword instead of `public`, you indicate
-    that no field is generated to go with the resource. Use an
-    appropriate other field instead. It also allows the use of the `@`
-    which is not allowed for `public`.
-
-default_type
-:   Resources can be initialized by the resource system automatically.
-    This field specifies the type of `default_addr`.
-
-    In the example, this is `String` (transformed into `XtRString`).
-
-    There is special syntax for the special types
-    
-    - `XtRImmediate` (which copies the value without converting it):
+- default_type:
+  Resources can be initialized by the resource system automatically.
+  This field specifies the type of `default_addr`.  
+  In the example, this is `String` (transformed into `XtRString`).  
+  There is special syntax for the special types
+    * `XtRImmediate` (which copies the value without converting it):
       just use a simple `=` sign
-    - `XtRCallProc` (which calls a function of signature
+    * `XtRCallProc` (which calls a function of signature
       `XtResourceDefaultProc`): use `= FunctionName()`.
 
-default_addr
-:   This should point to an appropriate value of the type named by
-    `default_type`.
+- default_addr:
+  This should point to an appropriate value of the type named by
+  `default_type`.
 
-    In the example, this is `"XtDefaultForeground"`.
-
+  In the example, this is `"XtDefaultForeground"`.
 
 Summarizing, a resource description that uses no defaults would look
 like
 
-```
     resource: ResourceType(ResourceClass) resource_name :resource_size_type @resource_offset
                      =R(DefaultType) default_addr;
-```
+
 For more details, see chapter 9 "Resource Management" of the Intrinsics
 document.
 
