@@ -17,6 +17,7 @@ widget FooThing : BaseType {
 	void (*funcptr)(int, int) = 0;
     }
     # And these are our instance fields.
+    # public: reprtype(resourceclass) field = ctype: init;
     instance {
 	public: Pixel(Color) foreground = 0;	/* comment on foreground */
 	public: Pixel(Color) background = (0 + 0) / 2;
@@ -37,8 +38,8 @@ widget BaseType : Root {
 	# If the subclass init value contains Inherit, that name is used
 	# instead of BaseTypeInheritDestroy (class + Inherit + field name).
 	XtWidgetProc destroy = BaseTypeDestroy; sub= NonDefaultNameForInheritDestroy;
-	# %s is replaced here by the class name.
-	XtExposeProc expose = %sExpose; sub= %sExpose;
+	# %c is replaced here by the class name.
+	XtExposeProc expose = %cExpose; sub= %cExpose;
     }
     instance {
     }
@@ -46,7 +47,103 @@ widget BaseType : Root {
 
 widget Root {
     class {
+        WidgetClass     superclass = (WidgetClass)&unnamedObjClassRec; sub= (WidgetClass)&%lsClassRec; /* pointer to superclass ClassRec  */
+        String          class_name = "%c";          /* widget resource class name       */
+        Cardinal        widget_size = sizeof(%cRec);/* size in bytes of widget record   */
+        XtProc          class_initialize = %cClassInitialize; /* class initialization proc        */
+        XtWidgetClassProc class_part_initialize = %cClassPartInitialize; /* dynamic initialization      */
+        XtEnum          class_inited;               /* has class been initialized?      */
+        XtInitProc      initialize = %cInitialize;  /* initialize subclass fields       */
+        XtArgsProc      initialize_hook;            /* notify that initialize called    */
+        XtRealizeProc   realize = %cRealize;        /* XCreateWindow for widget         */
+        XtActionList    actions;                    /* widget semantics name to proc map */
+        Cardinal        num_actions;                /* number of entries in actions     */
+        XtResourceList  resources = resources;      /* resources for subclass fields    */
+        Cardinal        num_resources = XtNumber(resources);/* number of entries in resources   */
+        XrmClass        xrm_class = NULLQUARK;      /* resource class quarkified        */
+        Boolean         compress_motion = FALSE;    /* compress MotionNotify for widget */
+        XtEnum          compress_exposure = TRUE;   /* compress Expose events for widget*/
+        Boolean         compress_enterleave = FALSE;/* compress enter and leave events  */
+        Boolean         visible_interest = FALSE;   /* select for VisibilityNotify      */
+        XtWidgetProc    destroy = %cDestroy;        /* free data for subclass pointers  */
+        XtWidgetProc    resize = 0; sub= %cResize;  /* geom manager changed widget size */
+        XtExposeProc    expose = 0; sub= %cExpose;  /* rediplay window                  */
+        XtSetValuesFunc set_values = %cSetValues;   /* set subclass resource values     */
+        XtArgsFunc      set_values_hook;            /* notify that set_values called    */
+        XtAlmostProc    set_values_almost = %cSetValuesAlmost;  /* set_values got "Almost" geo reply */
+        XtArgsProc      get_values_hook;            /* notify that get_values called    */
+        XtAcceptFocusProc accept_focus;             /* assign input focus to widget     */
+        XtVersionType   version = XtVersion;        /* version of intrinsics used       */
+        XtPointer       callback_private;           /* list of callback offsets         */
+        String          tm_table;                   /* state machine                    */
+        XtGeometryHandler query_geometry sub= XtInheritQueryGeometry; /* return preferred geometry        */
+        XtStringProc    display_accelerator sub= XtInheritDisplayAccelerator ; /* display your accelerator         */
+        XtPointer       extension;                  /* pointer to extension record      */
     }
+
     instance {
+        private: Widget         self;               /* pointer to widget itself          */
+        private: WidgetClass    widget_class;       /* pointer to Widget's ClassRec      */
+        private: Widget         parent;             /* parent widget                     */
+        private: XrmName        xrm_name;           /* widget resource name quarkified   */
+        private: Boolean        being_destroyed;    /* marked for destroy                */
+        private: XtCallbackList destroy_callbacks;  /* who to call when widget destroyed */
+        private: XtPointer      constraints;        /* constraint record                 */
+        private: Position       x;                  /* window position                   */
+        private: Position       y;                  /* window position                   */
+        private: Dimension      width;              /* window dimension                  */
+        private: Dimension      height;             /* window dimension                  */
+        private: Dimension      border_width;       /* window border width               */
+        private: Boolean        managed;            /* is widget geometry managed?       */
+        private: Boolean        sensitive;          /* is widget sensitive to user events*/
+        private: Boolean        ancestor_sensitive; /* are all ancestors sensitive?      */
+        private: XtEventTable   event_table;        /* private to event dispatcher       */
+
+        # This is an example where the resource does not exactly match
+        # the instance field.
+        private:  XtTMRec       tm;                 /* translation management            */
+        resource: TranslationTable(Translations) translations @tm.translations
+                         =R(TranslationTable) NULL; /* translation management            */
+
+        # In the original, the field type is XtTranslations even though the C representation
+        # of XtRAcceleratorTable is supposed to be XtAccelerators.
+        # Fortunately they typedef to the same thing.
+        #private:  XtTranslations accelerators;      /* accelerator translations          */
+        public:  AcceleratorTable(Accelerators) accelerators
+                    =R(TranslationTable) NULL;       /* accelerator translations          */
+
+        # In original, the C field is inconsistently named border_pixel but the resource is BorderColor
+        public:  Pixel(BorderColor) border_color
+                  =R(String) "XtDefaultForeground"; /* window border pixel               */
+
+        public:  Pixmap(Pixmap)  border_pixmap
+                             = XtUnspecifiedPixmap; /* window border pixmap or NULL      */
+
+        private: WidgetList     popup_list;         /* list of popups                    */
+        private: Cardinal       num_popups;         /* how many popups                   */
+        private: String         name;               /* widget resource name              */
+
+        public:  Screen(Screen) screen
+                                  = XtCopyScreen(); /* window's screen                   */
+
+        public:  Colormap(Colormap) colormap
+                             = _XtCopyFromParent(); /* colormap                          */
+
+        private: Window         window;             /* window ID                         */
+
+        # Another slight irregularity here, but int and Cardinal are the same size.
+        public:  Int(Depth) depth : Cardinal
+                             = _XtCopyFromParent(); /* number of planes in window        */
+
+        public:  Pixel(Background) background_pixel
+                =R(String) "XtDefaultBackground";   /* window background pixel           */
+
+        public: Pixmap(Pixmap) background_pixmap
+                            = XtUnspecifiedPixmap;  /* window background pixmap or NULL  */
+        private: Boolean        visible;            /* is window mapped and not occluded?*/
+
+        public:  Boolean(MappedWhenManaged) mapped_when_managed
+                                             = True;/* map window if it's managed?       */
     }
-}
+};
+
