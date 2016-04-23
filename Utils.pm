@@ -9,6 +9,7 @@ use Exporter 'import'; # gives you Exporter's import() method directly
 our @EXPORT = ();
 our @EXPORT_OK = qw(
     hashed_list_of_hashes
+    trim
 );
 
 sub hashed_list_of_hashes
@@ -22,6 +23,18 @@ sub hashed_list_of_hashes
     }
 
     return \%indexed;
+}
+
+# Trim leading and trailing whitespace.
+
+sub trim
+{
+    my ($str) = @_;
+
+    $str =~ s/^\s+//;
+    $str =~ s/\s+$//;
+
+    return $str;
 }
 
 1;

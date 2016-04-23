@@ -10,7 +10,7 @@ use ClassOverride;
 use NameUtils;
 use PrivateInstanceMember;
 use Resource;
-use Utils ('hashed_list_of_hashes');
+use Utils ('hashed_list_of_hashes', 'trim');
 use Widget;
 
 sub parse
@@ -146,6 +146,7 @@ sub class_member_definition
 	if ($self->maybe_expect(qr/=/)) {
 	    $self->skip_ws();
 	    $init_self = $self->substring_before(qr/;/);
+	    $init_self = trim($init_self);
 	    $self->expect(qr/;/);
 	} else {
 	    $init_self = "0";
@@ -154,6 +155,7 @@ sub class_member_definition
 	if ($self->maybe_expect("sub=")) {
 	    $self->skip_ws();
 	    $init_subclass = $self->substring_before(qr/;/);
+	    $init_subclass = trim($init_subclass);
 	    $self->expect(qr/;/);
 	} else {
 	    $init_subclass = $init_self;
@@ -225,12 +227,15 @@ sub resource_definition
     if ($self->maybe_expect(qr/:/)) {
 	$self->skip_ws();
 	$ctype = $self->substring_before(qr/[@=;]/);
+	$ctype = trim($ctype);
     }
 
-    if ($self->maybe_expect(qr/@/)) {
+    if ($is_resource_only && $self->maybe_expect(qr/@/)) {
 	$self->skip_ws();
 	$offset = $self->substring_before(qr/[=;]/);
+	$offset = trim($offset);
     }
+
     my $has_init = 0;
     # =R(FooType)
     if (my $string = $self->maybe_expect(qr/=R\(([A-Za-z0-9]+)\)/)) {
@@ -245,9 +250,9 @@ sub resource_definition
     if ($has_init) {
 	$self->skip_ws();
 	$init = $self->substring_before(qr/;/);
-	length $init or $self->fail( "Expected a C initializer expression ';'" );
+	$init = trim($init);
 
-	$init =~ s/\s+$//;	# strip trailing spaces
+	length $init or $self->fail( "Expected a C initializer expression ';'" );
 
 	if ($init =~ s/\(\)$//) {
 	    $default_type = "XtRCallProc";
@@ -340,6 +345,8 @@ sub c_declaration
 
     $self->skip_ws();
     my $declarator = $self->substring_before(qr/[=;]/);
+    $declarator = trim($declarator);
+
     my $id;
     my $declarator_pattern;
 
@@ -351,7 +358,7 @@ sub c_declaration
 	my $matched = $1;
 	next if $matched eq "const";
 	next if $matched eq "volatile";
-	next if substr($matched, 0, 1) eq "_";
+	next if substr($matched, 0, 1) eq "_"; # don't spoil ^PREMATCH: don't use a regexp.
 	$id = $matched;
 	$declarator_pattern = ${^PREMATCH}."%s".${^POSTMATCH};
 	last;
