@@ -164,6 +164,8 @@ typedef struct $widget->{class_record_type} {
 $widget->{all_class_part_instance_decls}
 } $widget->{class_record_type};
 
+extern struct $widget->{class_record_type} $widget->{class_record_instance};
+
 #endif /* ${NAME}P_H */
 HERE_EOF
     close FILE;
@@ -205,7 +207,7 @@ static XtResource resources[] = {
 ${all_resources}
 };
 
-static struct $widget->{class_record_type} $widget->{class_record_instance} = {
+struct $widget->{class_record_type} $widget->{class_record_instance} = {
 $widget->{code_init_self}
 };
 

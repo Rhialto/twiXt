@@ -30,16 +30,16 @@ widget BaseType : Root {
     class {
 	# For class fields you can specify a different default value
 	# for derived classes. Typically this would be a special
-	# "inherit from superclass" value such ias XtInheritDestroy.
+	# "inherit from superclass" value such as XtInheritDestroy.
 	int  classfield_int  = 1; sub= 2;
 	long classfield_long = 3; sub= 4;
 
-	# If the type ends in Proc or Func, #define ...InheritDestroy ...
+	# If the type ends in Proc or Func, #define ...InheritWibble ...
 	# If the subclass init value contains Inherit, that name is used
-	# instead of BaseTypeInheritDestroy (class + Inherit + field name).
-	XtWidgetProc destroy = BaseTypeDestroy; sub= NonDefaultNameForInheritDestroy;
+	# instead of BaseTypeInheritWibble (class + Inherit + field name).
+	XtWidgetProc wibble = BaseTypeWibble; sub= NonDefaultNameForInheritWibble;
 	# %c is replaced here by the class name.
-	XtExposeProc expose = %cExpose; sub= %cExpose;
+	XtWidgetProc frubble = %cFrubble; sub= %cFrubble;
     }
     instance {
     }
@@ -76,8 +76,8 @@ widget Root {
         XtVersionType   version = XtVersion;        /* version of intrinsics used       */
         XtPointer       callback_private;           /* list of callback offsets         */
         String          tm_table;                   /* state machine                    */
-        XtGeometryHandler query_geometry sub= XtInheritQueryGeometry; /* return preferred geometry        */
-        XtStringProc    display_accelerator sub= XtInheritDisplayAccelerator ; /* display your accelerator         */
+        XtGeometryHandler query_geometry = 0; sub= XtInheritQueryGeometry; /* return preferred geometry        */
+        XtStringProc    display_accelerator = 0; sub= XtInheritDisplayAccelerator ; /* display your accelerator         */
         XtPointer       extension;                  /* pointer to extension record      */
     }
 
@@ -147,3 +147,34 @@ widget Root {
     }
 };
 
+widget Simple : Root {
+    class {
+    }
+    instance {
+        public: Cursor(Cursor) cursor
+                    = None;
+
+        public: Pixmap(Insensitive) insensitive_border
+                    = NULL;
+
+        private:  Pixel pointer_fg;
+        resource: Pixel(Foreground) pointer_color @pointer_fg
+                    =R(String) XtDefaultForeground;
+
+        private:  Pixel pointer_bg;
+        resource: Pixel(Background) pointer_color_background @pointer_bg
+                    =R(String) XtDefaultForeground;
+
+        public: String(Cursor) cursor_name
+                    =R(String) NULL;
+
+        public: Boolean(International) international
+                    = False;
+
+        public: DisplayList(DisplayList) display_list
+                    = NULL;
+
+        public: String(Tip) tip
+                    = NULL;
+    }
+}
