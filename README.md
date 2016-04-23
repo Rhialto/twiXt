@@ -37,9 +37,10 @@ widget Name : BaseClass {
 };
 </code></pre>
 
-For more details on this, please see the X Toolkit Intrinsics
-documentation.  TwiXt aims to make use of Xt easier, but fully
-explaining it is beyond its scope.
+For more details on this, please see the [X Toolkit Intrinsics
+documentation](http://www.x.org/releases/X11R7.7/doc/libXt/intrinsics.html).
+TwiXt aims to make use of Xt easier, but fully explaining it is beyond
+its scope.
 
 See [Free O'Reilly books](http://www.x.org/wiki/ProgrammingDocumentation/) and
 [the X.org website](http://www.x.org/releases/X11R7.7/doc/index.html#client-devel).
@@ -82,7 +83,7 @@ These can be overriden if desired.
 If no class expression is given, it usually defaults to 0.
 If no subclass expression is given, it defaults to the class expression.
 
-TwiXt doesn't really analyze the structure of you expressions (the C
+TwiXt doesn't really analyze the structure of your expressions (the C
 compiler will complain later if you write nonsense),
 but there is some pattern expansion to fill in class names.
 
@@ -240,6 +241,13 @@ like
 
 For more details, see [chapter 9 "Resource Management" of the Intrinsics
 document](http://www.x.org/releases/X11R7.7/doc/libXt/intrinsics.html#Resource_Management).
+
+Generating function declarations or definitions for instance fields
+which point to such isn't very useful, so it isn't done. This is because
+in class fields, they typically point to a fixed function, but if you
+have them in instances, that would not be useful. You'd have multiple
+alternative functions to point to. And that is getting out of TwiXt's
+scope (and ability to invent syntax for it).
 
 {>>
  vim:expandtab:ft=markdown:
