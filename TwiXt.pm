@@ -194,6 +194,9 @@ sub instance_member_definitions
 
 #  public: Pixel(Color) background = (Black + White) / 2;
 #  public: Int(Int) testint : int = 3;
+#  public: Type(Class) resource_name : resource_sizeoftype @offset =R(default_type) default_addr;
+#  How to put in resource_offset, optionally? Defaults to the field
+#  resource_name in instance record.
 
 sub resource_definition
 {
@@ -203,10 +206,14 @@ sub resource_definition
     my $init = undef;
     my $ctype = undef;
     my $default_type = "XtRImmediate";
+    my $offset = undef;
 
-    $self->expect(qr/public/);
+    #$self->expect(qr/public/);
+    my $kw = $self->token_kw(qw(public resource));
     $self->expect(qr/:/);
     $self->commit();
+
+    my $is_resource_only = ($kw eq "resource");
 
     my $repr = $self->ident_camelcase();
     if ($self->maybe_expect(qr/\(/)) {
@@ -217,9 +224,13 @@ sub resource_definition
 
     if ($self->maybe_expect(qr/:/)) {
 	$self->skip_ws();
-	$ctype = $self->substring_before(qr/[=;]/);
+	$ctype = $self->substring_before(qr/[@=;]/);
     }
 
+    if ($self->maybe_expect(qr/@/)) {
+	$self->skip_ws();
+	$offset = $self->substring_before(qr/[=;]/);
+    }
     my $has_init = 0;
     # =R(FooType)
     if (my $string = $self->maybe_expect(qr/=R\(([A-Za-z0-9]+)\)/)) {
@@ -256,6 +267,7 @@ sub resource_definition
 	ctype        => $ctype,
 	default_type => $default_type,
 	default_addr => $init,
+	offset       => $offset,
 	comment      => $comment,
     );
 }

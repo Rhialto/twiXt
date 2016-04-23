@@ -16,6 +16,7 @@ use fields qw(
     default_addr
     field
     repr
+    offset
 );
 
 sub new
@@ -55,6 +56,11 @@ sub analyze
 	$self->{ctype} = $ctype;
     }
 
+    # The offset key is optional; only used when resource setting doesn't use a
+    # simple variable. In that case, generating the instance field is
+    # suppressed.
+    my $offset = $self->{offset} || $l_name;
+
     my $comment = $self->{comment} || "";
 
     # A resource generates various things:
@@ -83,7 +89,7 @@ sub analyze
               "        .resource_class  = XtC${Class},\n".
               "        .resource_type   = XtR${Repr},\n".
               "        .resource_size   = sizeof (${ctype}),\n".
-              "        .resource_offset = XtOffsetOf($widget->{instance_record_type}, $widget->{l_name}.$l_name),\n".
+              "        .resource_offset = XtOffsetOf($widget->{instance_record_type}, $widget->{l_name}.${offset}),\n".
               "        .default_type    = $self->{default_type},\n".
               "        .default_addr    = (XtPointer)($self->{default_addr}),\n".
 	      "    },\n";
@@ -93,9 +99,11 @@ sub analyze
     # A field in the instance record.
     # Do we need to implement {ctype} as a sprintf-pattern too?
 
-    my $field = "    ${ctype} ${l_name}; $comment\n";
+    if (! defined $self->{offset}) {
+	my $field = "    ${ctype} ${l_name}; $comment\n";
 
-    push @{$widget->{code_instance_record}}, [ $field, $self ];
+	push @{$widget->{code_instance_record}}, [ $field, $self ];
+    }
 }
 
 1;
