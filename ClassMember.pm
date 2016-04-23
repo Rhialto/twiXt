@@ -70,14 +70,13 @@ sub analyze
 	    # and if so, should it be here?
 	    if (!$init_subclass) { # undef or "0" or the like
 		$self->{init_subclass} = $init_subclass = "%c".$Field;
+		warn "Setting default init function for $Field: $init_subclass()";
 	    }
 
 	    # If it contains a pattern, plug in the class name
-	    if ($init_subclass =~ /%/) {
-		$init_subclass = $widget->expand_pattern($init_subclass);
-	    }
+	    $init_subclass = $widget->expand_pattern($init_subclass);
 
-	    my $defname = "${Class}Inherit${Field}";
+	    my $defname = "XtInherit${Field}";
 	    my $defval  = "((${type}) _XtInherit)";
 
 	    if ($init_subclass =~ /Inherit/ &&
