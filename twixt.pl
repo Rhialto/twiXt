@@ -4,28 +4,46 @@
 
 use strict;
 use warnings;
-use Data::Dumper;
+#use Data::Dumper;
+#use Data::Printer;
 use TwiXt;
 use Widget;
 use Generator;
 
 sub main
 {
+    my @args = @_;
+
     my $parser = TwiXt->new(
 		    patterns => {
 			comment => qr/#.*$/m,
 		    },
 		);
 
-    my $tree = $parser->from_file("testfile.xt");
+    if (!@args) {
+	push @args, "testfile.xt";
+    }
 
-    #print "Returned from parser->from_file: ", Dumper($tree), "\n";
+    for my $filename (@args) {
+	#my $tree = $parser->from_file($filename);
 
-    analyze_all($tree);
+	open my $file, "<", $filename;
+	$parser->{reader_filestack} = ();
+	$parser->{reader_file} = $file;
 
-    print "Returned from analyze_all: ", Dumper($tree), "\n";
+	my $tree = $parser->from_reader(\&reader);
 
-    generate_all($tree);
+	#print STDERR "Returned from parser->from_file: ", Dumper($tree), "\n";
+
+	analyze_all($tree);
+
+	#print STDERR "Returned from analyze_all: ", Dumper($tree), "\n";
+	#print STDERR "Returned from analyze_all: ";
+	#p($tree);
+	#print STDERR "\n";
+
+	generate_all($tree);
+    }
 
     return 0;
 }
@@ -39,6 +57,51 @@ sub analyze_all
     }
 }
 
+# Simple preprocessing reader which will %include files when asked.
+sub reader
+{
+    my $parser = $_[0];
+
+    my $file = $parser->{reader_file};
+
+    my $lines = undef;
+
+    for (;;) {
+
+	my $line = <$file>;
+
+	if (!defined $line) { # end of current file
+	    $file = pop @{$parser->{reader_filestack}};
+	    #print STDERR  "%%% EOF\n";
+	    return $lines if ! defined $file; # end of toplevel file
+	    next;
+	}
+
+	#print STDERR "line: ", $line;
+
+	if ($line =~ /^%/) {
+	    if ($line =~ /^%\s*include\s*"(.*)"/) {
+		my $filename = $1;
+		push @{$parser->{reader_filestack}}, $file;
+
+		#print STDERR  "%%% including file $filename\n";
+		$file = undef;
+		open $file, "<", $filename;
+		$parser->{reader_file} = $file;
+
+		return defined $lines ? $lines : "";
+	    } else {
+		print STDERR  "Unrecognized preprocessing line: ", $line;
+	    }
+	    $line = "";
+	}
+
+	$lines .= $line;
+    }
+
+    return $lines;
+
+}
 
 main(@ARGV);
 
