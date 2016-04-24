@@ -57,7 +57,7 @@ sub analyze
 
 	# For function pointers, create a #define to inherit it from
 	# the parent class. There is a default name for this define,
-	# "${Class}Inherit${Field}",
+	# "XtInherit${Field}",
 	# but if a simple subclass initializer is given, use that as a name.
 
 	if (defined $type) {
