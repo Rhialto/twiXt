@@ -65,8 +65,8 @@ sub generate_public_h_file
 
     my $rootclass = $widget->rootclass();
 
-    open FILE, ">", $Public_h_file_name;
-    print FILE <<HERE_EOF;
+    open my $file, ">", $Public_h_file_name;
+    print $file <<HERE_EOF;
 #ifndef ${NAME}_H
 #define ${NAME}_H
 
@@ -90,7 +90,7 @@ typedef struct $widget->{instance_record_type} *${Name};
 
 #endif /* ${NAME}_H */
 HERE_EOF
-    close FILE;
+    close $file;
 }
 
 sub generate_private_h_file
@@ -121,8 +121,8 @@ sub generate_private_h_file
 	}
     }
 
-    open FILE, ">", $Private_h_file_name;
-    print FILE <<HERE_EOF;
+    open my $file, ">", $Private_h_file_name;
+    print $file <<HERE_EOF;
 #ifndef ${NAME}P_H
 #define ${NAME}P_H
 
@@ -168,7 +168,7 @@ extern struct $widget->{class_record_type} $widget->{class_record_instance};
 
 #endif /* ${NAME}P_H */
 HERE_EOF
-    close FILE;
+    close $file;
 }
 
 sub generate_c_file
@@ -191,8 +191,8 @@ sub generate_c_file
 
     my $rootclass = $widget->rootclass();
 
-    open FILE, ">", $c_file_name;
-    print FILE <<HERE_EOF;
+    open my $file, ">", $c_file_name;
+    print $file <<HERE_EOF;
 
 #include <stddef.h>
 #include <$widget->{Private_h_file_name}>
@@ -229,4 +229,5 @@ WidgetClass $widget->{class_record_instance_ptr} = (WidgetClass)&$widget->{class
 /* Definitions for class functions */
 $widget->{define_class_functions}
 HERE_EOF
+    close $file;
 }
