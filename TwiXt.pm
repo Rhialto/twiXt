@@ -5,10 +5,10 @@ use warnings;
 
 use parent 'Parser::MGC';
 #use Data::Dumper;
-use ClassMember;
+use ClassField;
 use ClassOverride;
 use NameUtils;
-use PrivateInstanceMember;
+use PrivateInstanceField;
 use Resource;
 use Utils ('hashed_list_of_hashes', 'trim');
 use Widget;
@@ -32,8 +32,8 @@ sub parse
 #
 # widget FooWidget : Core {
 # 	... class overrides
-# 	... class member definitions
-# 	... instance member definitions
+# 	... class field definitions
+# 	... instance field definitions
 # };
 #
 sub widget
@@ -53,20 +53,20 @@ sub widget
     $self->commit();
     my %flags;
 
-    my $members = $self->block_scope_of( sub {
+    my $fields = $self->block_scope_of( sub {
 	$self->all_of(
 	    sub { $self->class_overrides(); },
-	    sub { $self->class_member_definitions(\%flags); },
-	    sub { $self->instance_member_definitions(); }
+	    sub { $self->class_field_definitions(\%flags); },
+	    sub { $self->instance_field_definitions(); }
 	)
     } );
 
     my Widget $widget = Widget->new(
 	Name             => $name,
 	super            => $super,
-	class_overrides  => $members->[0],
-	class_members    => $members->[1],
-	instance_members => $members->[2],
+	class_overrides  => $fields->[0],
+	class_fields    => $fields->[1],
+	instance_fields => $fields->[2],
 	no_inherit_class_fields => defined ($flags{no_inherit}),
     );
 
@@ -88,15 +88,15 @@ sub class_overrides
 
 	my $overridden = $self->ident_camelcase();
 
-	my $members = $self->block_scope_of( sub {
+	my $fields = $self->block_scope_of( sub {
 	    $self->sequence_of ( sub {
-		$self->class_member_override()
+		$self->class_field_override()
 	    } )
 	} );
 
 	$overrides{$overridden} = ClassOverride->new(
 	    name   => $overridden,
-	    fields => hashed_list_of_hashes("field", $members),
+	    fields => hashed_list_of_hashes("field", $fields),
 	);
 
     } );
@@ -104,7 +104,7 @@ sub class_overrides
     return \%overrides;
 }
 
-sub class_member_override
+sub class_field_override
 {
     my TwiXt $self = $_[0];
 
@@ -121,7 +121,7 @@ sub class_member_override
     };
 }
 
-sub class_member_definitions
+sub class_field_definitions
 {
     my TwiXt $self = $_[0];
     my $flags = $_[1];
@@ -133,12 +133,12 @@ sub class_member_definitions
 
     $self->block_scope_of( sub {
 	$self->sequence_of ( sub {
-	    $self->class_member_definition()
+	    $self->class_field_definition()
 	} )
     } );
 }
 
-sub class_member_definition
+sub class_field_definition
 {
     my TwiXt $self = $_[0];
 
@@ -172,7 +172,7 @@ sub class_member_definition
 
     my $comment = $self->maybe_comment();
 
-    return ClassMember->new(
+    return ClassField->new(
 	%{$decl},
 	init_self     => $init_self,
 	init_subclass => $init_subclass,
@@ -180,12 +180,12 @@ sub class_member_definition
     );
 }
 
-# Members can be resources (and then they are settable via
+# Fields can be resources (and then they are settable via
 # XtSetValues() etc, or just private.
 # The order is relevant, because we want to be able to describe
 # the existing widgets in a compatible way.
 
-sub instance_member_definitions
+sub instance_field_definitions
 {
     my TwiXt $self = $_[0];
 
@@ -298,7 +298,7 @@ sub private_field_definition
 
     my $comment = $self->maybe_comment();
 
-    return PrivateInstanceMember->new(
+    return PrivateInstanceField->new(
 	%{$decl},
 	comment => $comment,
     );

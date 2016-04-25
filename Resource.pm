@@ -1,6 +1,6 @@
 package Resource;
 
-# a.k.a. public or settable instance member.
+# a.k.a. public or settable instance field.
 
 use strict;
 use warnings;

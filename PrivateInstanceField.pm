@@ -1,4 +1,4 @@
-package PrivateInstanceMember;
+package PrivateInstanceField;
 
 use strict;
 use warnings;
@@ -29,9 +29,9 @@ sub new
 
 sub analyze
 {
-    (my PrivateInstanceMember $self, my Widget $widget) = @_;
-    #print "PrivateInstanceMember self = ", Dumper($self), "\n";
-    #print "PrivateInstanceMember widget = ", Dumper($widget), "\n";
+    (my PrivateInstanceField $self, my Widget $widget) = @_;
+    #print "PrivateInstanceField self = ", Dumper($self), "\n";
+    #print "PrivateInstanceField widget = ", Dumper($widget), "\n";
 
     my $declaration = $self->{declaration};
     my $comment = $self->{comment} || "";

@@ -8,7 +8,7 @@ use fields qw(
     all_class_part_instance_decls
     all_instance_part_instance_decls
     analyzed
-    class_members
+    class_fields
     class_overrides
     class_part_instance_decl
     class_record_instance
@@ -26,7 +26,7 @@ use fields qw(
     declare_class_functions
     define_class_functions
     inherit_defines
-    instance_members
+    instance_fields
     instance_part_instance_decl
     instance_part_type
     instance_record_type
@@ -139,8 +139,8 @@ sub analyze
     $self->{code_xtr} = [];
     $self->{code_resources} = [];
 
-    # Analyze class_members (type ClassMember)
-    if (defined (my $mems = $self->{class_members})) {
+    # Analyze class_fields (type ClassField)
+    if (defined (my $mems = $self->{class_fields})) {
 	foreach my $m (@$mems) {
 	    $m->analyze($self);
 	}
@@ -156,8 +156,8 @@ sub analyze
 	    analyze_init_class($self, $self->{class_overrides});
     }
 
-    # Analyze instance_members (type Resource and PrivateInstanceMember)
-    if (defined (my $mems = $self->{instance_members})) {
+    # Analyze instance_fields (type Resource and PrivateInstanceField)
+    if (defined (my $mems = $self->{instance_fields})) {
 	foreach my $m (@$mems) {
 	    $m->analyze($self);
 	}
@@ -196,7 +196,7 @@ sub analyze_init_with_field
 {
     (my Widget $self, my Widget $for_class, my $overrides) = @_;
 
-    my $mems = $self->{class_members};
+    my $mems = $self->{class_fields};
     my $init;
 
     if ($self->{Name} eq $for_class->{Name}) {

@@ -1,4 +1,4 @@
-package ClassMember;
+package ClassField;
 
 use strict;
 use warnings;
@@ -35,14 +35,14 @@ sub new
 }
 
 #
-# This is called for every classmember while analyzing its class.
+# This is called for every classfield while analyzing its class.
 #
 
 sub analyze
 {
-    (my ClassMember $self, my Widget $widget) = @_;
+    (my ClassField $self, my Widget $widget) = @_;
 
-    #print "ClassMember::analyze, before: ", Dumper($self), "\n";
+    #print "ClassField::analyze, before: ", Dumper($self), "\n";
     my $comment = $self->{comment} || "";
 
     # Test if this is an own field or an override for a superclass field
@@ -94,10 +94,10 @@ sub analyze
 	}
     }
 
-    #print "ClassMember::analyze, after ", Dumper($self, $widget), "\n";
+    #print "ClassField::analyze, after ", Dumper($self, $widget), "\n";
 }
 
-# Returns a defined value (the type) if the class member is
+# Returns a defined value (the type) if the class field is
 # recognizably a function pointer.
 # That is the case for type names ending in Proc|Func|Handler|Converter,
 # but also if they look like (*...)(...).
@@ -105,9 +105,9 @@ sub analyze
 
 sub is_function_pointer
 {
-    my ClassMember $self = $_[0];
+    my ClassField $self = $_[0];
 
-    #print STDERR "ClassMember::is_function_pointer: ", Dumper($self), "\n";
+    #print STDERR "ClassField::is_function_pointer: ", Dumper($self), "\n";
     my $type = $self->{declaration_specifiers};
 
     if ($type =~ /(Proc|Func|Handler|Converter)$/) {
@@ -130,14 +130,14 @@ sub is_function_pointer
 }
 
 #
-# This is called multiple times for each ClassMember:
+# This is called multiple times for each ClassField:
 # once for each instantiation, which means it will be called for its own
 # class and for each of the subclasses which include it.
 #
 
 sub analyze_function_pointer
 {
-    (my ClassMember $self, my Widget $widget, my Widget $for_class, my $value) = @_;
+    (my ClassField $self, my Widget $widget, my Widget $for_class, my $value) = @_;
 
     my $type = $self->is_function_pointer();
 

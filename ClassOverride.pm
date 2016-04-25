@@ -39,7 +39,7 @@ sub analyze
 	my $ok = 0;
 
 	# Check if the superclass has this field
-	for my $m (@{$superclass->{class_members}}) {
+	for my $m (@{$superclass->{class_fields}}) {
 	    $ok++ if ($m->{field} eq $fieldname);
 	}
 
