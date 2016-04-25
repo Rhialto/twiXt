@@ -68,7 +68,7 @@ sub analyze
 
 	    # Is this a good idea?
 	    # and if so, should it be here?
-	    if (!$init_subclass) { # undef or "0" or the like
+	    if (!defined $init_subclass || $init_subclass eq "") {
 		$self->{init_subclass} = $init_subclass = "%c".$Field;
 		warn "Setting default init function for $Field: $init_subclass()";
 	    }
@@ -97,16 +97,35 @@ sub analyze
     #print "ClassMember::analyze, after ", Dumper($self, $widget), "\n";
 }
 
+# Returns a defined value (the type) if the class member is
+# recognizably a function pointer.
+# That is the case for type names ending in Proc|Func|Handler|Converter,
+# but also if they look like (*...)(...).
+# That is a somewhat sloppy test but for now it seems good enough.
+
 sub is_function_pointer
 {
     my ClassMember $self = $_[0];
 
+    #print STDERR "ClassMember::is_function_pointer: ", Dumper($self), "\n";
     my $type = $self->{declaration_specifiers};
 
     if ($type =~ /(Proc|Func|Handler|Converter)$/) {
+	#print STDERR "yes: $type\n";
 	return $type;
     }
 
+    # declarator          =>  '(*funcptr)(int, int)'
+    # declaration_pattern =>  'void (*%s)(int, int)'
+    my $declarator = $self->{declarator};
+    if ($declarator =~ /^\(\*.*\)\(.*\)$/) {
+	#print STDERR "yes: $self->{declaration_pattern}\n";
+	return $self->{declaration_pattern};
+	# Unrecognized by funcTypedef2declaration, so the
+	# default will be used
+    }
+
+    #print STDERR "no.\n";
     return undef;
 }
 
