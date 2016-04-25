@@ -83,6 +83,15 @@ These can be overriden if desired.
 If no class expression is given, it usually defaults to 0.
 If no subclass expression is given, it defaults to the class expression.
 
+For use in subclasses, a `#define XtInherit`_Field_ will be generated.
+Also, if the value which is used in the C initializer looks like a
+function name (is in proper CamelCase), a function declaration and
+definition will be generated.
+
+Exception: if the text contains the word `Inherit` then that name will
+be used for the `#define` instead. In that case also there will be no
+function declaration and body for this name.
+
 TwiXt doesn't really analyze the structure of your expressions (the C
 compiler will complain later if you write nonsense),
 but there is some pattern expansion to fill in class names.
