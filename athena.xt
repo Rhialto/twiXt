@@ -1,0 +1,37 @@
+%include "intrinsics.xt"
+
+widget Simple : Core {
+    class {
+        Bool (*change_sensitive)(Widget) = ChangeSensitive;
+        XtPointer extension;
+    }
+    instance {
+        public: Cursor(Cursor) cursor
+                    = None;
+
+        public: Pixmap(Insensitive) insensitive_border
+                    = NULL;
+
+        public: String(Cursor) cursor_name
+                    =R(String) NULL;
+
+        private:  Pixel pointer_fg;
+        resource: Pixel(Foreground) pointer_color @pointer_fg
+                    =R(String) XtDefaultForeground;
+
+        private:  Pixel pointer_bg;
+        resource: Pixel(Background) pointer_color_background @pointer_bg
+                    =R(String) XtDefaultForeground;
+
+        public: Boolean(International) international
+                    = False;
+
+        public: DisplayList(DisplayList) display_list
+                    = NULL;
+
+        public: String(Tip) tip
+                    = NULL;
+
+        private: XtPointer pad[3];	/* for future use and keep binary compatability */
+    }
+};
