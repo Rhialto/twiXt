@@ -51,21 +51,26 @@ sub widget
     }
 
     $self->commit();
+    my %flags;
+
     my $members = $self->block_scope_of( sub {
 	$self->all_of(
 	    sub { $self->class_overrides(); },
-	    sub { $self->class_member_definitions(); },
+	    sub { $self->class_member_definitions(\%flags); },
 	    sub { $self->instance_member_definitions(); }
 	)
     } );
 
-    return Widget->new(
+    my Widget $widget = Widget->new(
 	Name             => $name,
 	super            => $super,
 	class_overrides  => $members->[0],
 	class_members    => $members->[1],
 	instance_members => $members->[2],
+	no_inherit_class_fields => defined ($flags{no_inherit}),
     );
+
+    return $widget;
 }
 
 # Several blocks of overrides:
@@ -119,9 +124,12 @@ sub class_member_override
 sub class_member_definitions
 {
     my TwiXt $self = $_[0];
+    my $flags = $_[1];
 
     $self->expect("class");
     $self->commit();
+
+    $flags->{no_inherit} = $self->maybe_expect(qr/no-inherit/);
 
     $self->block_scope_of( sub {
 	$self->sequence_of ( sub {

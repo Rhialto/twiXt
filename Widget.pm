@@ -34,6 +34,7 @@ use fields qw(
     NAME
     Name
     name
+    no_inherit_class_fields
     Private_h_file_name
     Public_h_file_name
     super
@@ -106,14 +107,18 @@ sub analyze
     $self->{all_class_part_instance_decls} = "";
     $self->{all_instance_part_instance_decls} = "";
 
-    if (defined $superclass) {
+    if (defined $superclass && ! $self->{no_inherit_class_fields}) {
 	$self->{all_class_part_instance_decls} =
 	    $superclass->{all_class_part_instance_decls} . $self->{class_part_instance_decl};
-	$self->{all_instance_part_instance_decls} =
-	    $superclass->{all_instance_part_instance_decls} . $self->{instance_part_instance_decl};
     } else {
 	$self->{all_class_part_instance_decls} =
 	    $self->{class_part_instance_decl};
+    }
+
+    if (defined $superclass) {
+	$self->{all_instance_part_instance_decls} =
+	    $superclass->{all_instance_part_instance_decls} . $self->{instance_part_instance_decl};
+    } else {
 	$self->{all_instance_part_instance_decls} =
 	    $self->{instance_part_instance_decl};
     }
@@ -174,7 +179,7 @@ sub analyze_init_class
     my $superclasses;
     my Widget $superclass = $self->{superclass};
 
-    if (defined $superclass) {
+    if (defined $superclass && ! $self->{no_inherit_class_fields}) {
 	$superclasses = $superclass->analyze_init_class(
 				    $for_class, $overrides);
     } else {
@@ -205,8 +210,8 @@ sub analyze_init_with_field
 	$overfields = $overrides->{fields};
     }
 
-    print "analyze_init_with_field: $self->{Name} for $for_class->{Name}; overrides:\n",
-	    Dumper($overrides), "\n";
+#    print "analyze_init_with_field: $self->{Name} for $for_class->{Name}; overrides:\n",
+#	    Dumper($overrides), "\n";
 
     my $code = "    { /* $self->{Name} for $for_class->{Name} */\n";
     foreach my $m (@$mems) {
