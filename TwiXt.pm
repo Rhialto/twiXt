@@ -7,6 +7,7 @@ use parent 'Parser::MGC';
 #use Data::Dumper;
 use ClassField;
 use ClassOverride;
+use CodeBlock;
 use NameUtils;
 use PrivateInstanceField;
 use Resource;
@@ -51,32 +52,128 @@ sub widget
     }
 
     $self->commit();
-    my %flags;
 
-    my $fields = $self->block_scope_of( sub {
-	$self->all_of(
-	    sub { $self->class_overrides(); },
-	    sub { $self->class_field_definitions(\%flags); },
-	    sub { $self->instance_field_definitions(); }
-	)
+    my $block = $self->block_scope_of( sub {
+	$self->widget_block();
     } );
 
     my Widget $widget = Widget->new(
 	Name             => $name,
 	super            => $super,
-	class_overrides  => $fields->[0],
-	class_fields    => $fields->[1],
-	instance_fields => $fields->[2],
-	no_inherit_class_fields => defined ($flags{no_inherit}),
+	%{$block}
     );
 
     return $widget;
+
+#    my %flags;
+#
+#    my $fields = $self->block_scope_of( sub {
+#	$self->all_of(
+#	    sub { $self->class_overrides(); },
+#	    sub { $self->class_field_definitions(\%flags); },
+#	    sub { $self->instance_field_definitions(); }
+#	)
+#    } );
+#
+#    my Widget $widget = Widget->new(
+#	Name             => $name,
+#	super            => $super,
+#	class_overrides  => $fields->[0],
+#	class_fields     => $fields->[1],
+#	instance_fields  => $fields->[2],
+#	no_inherit_class_fields => defined ($flags{no_inherit}),
+#    );
+#
+#    return $widget;
+}
+
+sub widget_block
+{
+    my TwiXt $self = $_[0];
+    my Widget %found;
+
+    my $progress;
+
+    # Allow code_definition, class_override, class_field_definitions,
+    # instance_field_definitions in any order, and the first two can occur
+    # multiple times.
+    do {
+	$progress = 0;
+
+	$self->any_of(
+	    sub {
+		print STDERR "widget_block: trying code_definition\n";
+		my $code = $self->code_definition();
+		print STDERR "progress++\n";
+		$progress++;
+		my $name = $code->{name};
+		$found{code_blocks}->{$name} = $code;
+	    },
+	    sub {
+		print STDERR "widget_block: trying class_override\n";
+		my $override = $self->class_override();
+		print STDERR "progress++\n";
+		$progress++;
+		my $name = $override->{name};
+		$found{class_overrides}->{$name} = $override;
+	    },
+	    sub {
+		print STDERR "widget_block: trying class_field_definitions\n";
+	        if ($found{class_fields}) {
+		    $self->fail();
+		}
+		my %flags;
+		$found{class_fields} = $self->class_field_definitions(\%flags);
+		$progress++;
+		$found{no_inherit_class_fields} = defined $flags{no_inherit};
+	    },
+	    sub {
+		print STDERR "widget_block: trying instance_fields\n";
+		if ($found{instance_fields}) {
+		    $self->fail();
+		}
+		$found{instance_fields} = $self->instance_field_definitions();
+		$progress++;
+	    },
+	    sub {
+		# Dummy that always succeeds, to stop any_of failing.
+		print STDERR "widget_block: dummy\n";
+	    },
+	);
+	print STDERR "while progress, $progress\n";
+    } while ($progress);
+
+    return \%found;
+}
+
+sub code_definition
+{
+    my TwiXt $self = $_[0];
+
+    $self->expect("code");
+    my $label = $self->token_string();
+
+    $self->commit();
+
+    $self->expect(qr/\{\{\{/);
+    # Annoyingly, substring_before will stop before the } which
+    # is the end of the current scope.
+    # Hack this to disable that.
+    local $self->{endofscope} = undef;
+    my $body = $self->substring_before(qr/\}\}\}/);
+    $body = trim($body);
+    $self->expect(qr/\}\}\}/);
+    
+    return new CodeBlock(
+	name => $label,
+	body => $body,
+    );
 }
 
 # Several blocks of overrides:
 # one block per superclass, each block can contain
 # multiple fields in the superclass record to override.
-sub class_overrides
+sub class_overrides_old
 {
     my TwiXt $self = $_[0];
 
@@ -102,6 +199,38 @@ sub class_overrides
     } );
 
     return \%overrides;
+}
+
+sub class_overrides
+{
+    my TwiXt $self = $_[0];
+
+    my $overrides = $self->sequence_of( sub {
+	$self->class_override();
+    } );
+
+    return hashed_list_of_hashes("name", $overrides);
+}
+
+sub class_override
+{
+    my TwiXt $self = $_[0];
+
+    $self->expect("override");
+    $self->commit();
+
+    my $overridden = $self->ident_camelcase();
+
+    my $fields = $self->block_scope_of( sub {
+	$self->sequence_of ( sub {
+	    $self->class_field_override()
+	} )
+    } );
+
+    return ClassOverride->new(
+	name   => $overridden,
+	fields => hashed_list_of_hashes("field", $fields),
+    );
 }
 
 sub class_field_override

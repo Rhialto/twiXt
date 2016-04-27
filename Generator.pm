@@ -63,6 +63,9 @@ sub generate_public_h_file
 	}
     }
 
+    my $top_file = $widget->{code_blocks}->{top_h_file}->{body} || "";
+    my $bottom_file = $widget->{code_blocks}->{bottom_h_file}->{body} || "";
+
     my $rootclass = $widget->rootclass();
 
     open my $file, ">", $Public_h_file_name;
@@ -73,6 +76,7 @@ sub generate_public_h_file
 #include <X11/Intrinsic.h>
 #include <X11/StringDefs.h>
 
+${top_file}
 /* Resource names */
 ${xtns}
 /* Resource classes */
@@ -88,6 +92,7 @@ typedef struct $widget->{instance_record_type} *${Name};
 
 /* New class method entry points */
 
+${bottom_file}
 #endif /* ${NAME}_H */
 HERE_EOF
     close $file;
@@ -121,6 +126,9 @@ sub generate_private_h_file
 	}
     }
 
+    my $top_file = $widget->{code_blocks}->{top_ph_file}->{body} || "";
+    my $bottom_file = $widget->{code_blocks}->{bottom_ph_file}->{body} || "";
+
     open my $file, ">", $Private_h_file_name;
     print $file <<HERE_EOF;
 #ifndef ${NAME}P_H
@@ -133,6 +141,7 @@ sub generate_private_h_file
 
 ${superinclude}
 
+${top_file}
 /* New representation types used by the ${Name} widget */
 
 /* Declarations for class functions */
@@ -166,6 +175,7 @@ $widget->{all_class_part_instance_decls}
 
 extern struct $widget->{class_record_type} $widget->{class_record_instance};
 
+${bottom_file}
 #endif /* ${NAME}P_H */
 HERE_EOF
     close $file;
@@ -189,6 +199,9 @@ sub generate_c_file
 	}
     }
 
+    my $top_file = $widget->{code_blocks}->{top_c_file}->{body} || "";
+    my $bottom_file = $widget->{code_blocks}->{bottom_c_file}->{body} || "";
+
     my $rootclass = $widget->rootclass();
 
     open my $file, ">", $c_file_name;
@@ -197,6 +210,7 @@ sub generate_c_file
 #include <stddef.h>
 #include <$widget->{Private_h_file_name}>
 
+${top_file}
 /******************************************************************
  *
  * $Name Resources
@@ -228,6 +242,8 @@ WidgetClass $widget->{class_record_instance_ptr} = (WidgetClass)&$widget->{class
 
 /* Definitions for class functions */
 $widget->{define_class_functions}
+
+${bottom_file}
 HERE_EOF
     close $file;
 }

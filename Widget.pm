@@ -15,6 +15,7 @@ use fields qw(
     class_record_instance_ptr
     class_record_part_type
     class_record_type
+    code_blocks
     code_class_decl
     code_init_self
     code_instance_record
