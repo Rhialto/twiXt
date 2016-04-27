@@ -33,7 +33,12 @@ widget FooThing : BaseType {
 	int foo_thing_int = 0xF001;
 	long foo_thing_long = 0xF002;
 	void (*funcptr)(int, int) = 0;
+        XtWidgetProc test_func = TestFunc;
     }
+    code "TestFunc" {{{
+        /* This is to be the body of the function pointed to by WidgetProc test_func */
+        return NULL;
+    }}}
     # And these are our instance fields.
     # public: reprtype(resourceclass) field = ctype: init;
     instance {
