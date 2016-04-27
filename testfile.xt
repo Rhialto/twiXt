@@ -5,6 +5,24 @@
 # That means that it adds to both its class fields and its instance fields.
 
 widget FooThing : BaseType {
+    code "top_h_file" {{{
+        /* top_h_file */
+    }}}
+    code "top_ph_file" {{{
+        /* top_ph_file */
+    }}}
+    code "top_c_file" {{{
+        /* top_c_file */
+    }}}
+    code "bottom_h_file" {{{
+        /* bottom_h_file */
+    }}}
+    code "bottom_ph_file" {{{
+        /* bottom_ph_file */
+    }}}
+    code "bottom_c_file" {{{
+        /* bottom_c_file */
+    }}}
     override BaseType {
 	# We would like a different value for our version of the
 	# class field BaseType.classfield_int.
@@ -45,6 +63,4 @@ widget BaseType : Root {
     }
 };
 
-%include "intrinsics.xt"
-
-%include "athena.xt"
+# %include "athena.xt"
