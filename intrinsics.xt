@@ -167,8 +167,7 @@ widget UnNamedObj : RectObj {
 };
 
 # The Rect object should NOT inherit the class fields from Object,
-# but it Should inherit the instance fields... hmmm.... how to implement
-# that...
+# but it Should inherit the instance fields...
 
 widget RectObj : Object {   # Or Rect
     class no-inherit {
@@ -284,12 +283,18 @@ widget Object {
     }
 };
 
+#
+# Here we start with the subclasses of Core.
+#
+
 widget Composite : Core {
     class {
         XtGeometryHandler geometry_handler = 0;
         XtWidgetProc      change_managed = 0;
-        XtWidgetProc      insert_child = CompositeInsertChild;
-        XtWidgetProc      delete_child = CompositeDeleteChild;
+        XtWidgetProc      insert_child
+            = CompositeInsertChild; sub= XtInheritInsertChild;
+        XtWidgetProc      delete_child
+            = CompositeDeleteChild; sub= XtInheritDeleteChild;
         XtPointer         extension = 0;
     }
     instance {
@@ -299,5 +304,218 @@ widget Composite : Core {
         public: Function(InsertPosition) insert_position : XtOrderProc = 0;
     }
     # TODO: CompositeClassExtensionRec
+};
+
+widget Constraint : Composite {
+    override Core {
+        destroy = 0;
+        resize = 0;
+        expose = 0;
+        set_values = 0;
+        set_values_almost = XtInheritSetValuesAlmost;
+        class_part_initialize = ConstraintPartInitialize; # Deviating name
+    }
+    override Composite {
+        insert_child = XtInheritInsertChild;
+        delete_child = XtInheritDeleteChild;
+    }
+    class {
+        XtResourceList resources;	  /* constraint resource list	     */
+        Cardinal   num_resources;         /* number of constraints in list  */
+        Cardinal   constraint_size;       /* size of constraint record      */
+        XtInitProc initialize;            /* constraint initialization      */
+        XtWidgetProc destroy;             /* constraint destroy proc        */
+        XtSetValuesFunc set_values;       /* constraint set_values proc     */
+        XtPointer	    extension;	  /* pointer to extension record    */
+    }
+    # TODO: ConstraintClassExtensionRec
+    instance {
+        private: XtPointer   mumble;	  /* No new fields, keep C compiler happy */
+    }
+};
+
+widget Shell : Composite {
+    class {
+        XtPointer       extension;          /* pointer to extension record      */
+    # TODO: ShellClassExtensionRec
+    }
+    code "bottom_ph_file" {{{
+/* For field client_specified */
+#define _XtShellPositionValid   ((Boolean)(1<<0))
+#define _XtShellNotReparented   ((Boolean)(1<<1))
+#define _XtShellPPositionOK     ((Boolean)(1<<2))
+#define _XtShellGeometryParsed  ((Boolean)(1<<3))
+    }}}
+    instance {
+        # TODO create resources
+        private: char       *geometry;
+        private: XtCreatePopupChildProc  create_popup_child_proc;
+        private: XtGrabKind  grab_kind;
+        private: Boolean     spring_loaded;
+        private: Boolean     popped_up;
+        private: Boolean     allow_shell_resize;
+        private: Boolean     client_specified; /* re-using old name */
+        private: Boolean     save_under;
+        private: Boolean     override_redirect;
+
+        private: XtCallbackList popup_callback;
+        private: XtCallbackList popdown_callback;
+        private: Visual*     visual;
+    }
+};
+
+widget OverrideShell : Shell {
+    class {
+        XtPointer       extension;          /* pointer to extension record      */
+    }
+    # TODO: OverrideShellClassRec
+    instance {
+        private: int frabjous;
+    }
+};
+
+widget WMShell : Shell {
+    class {
+        XtPointer       extension;          /* pointer to extension record      */
+    }
+    code "top_ph_file" {{{
+        struct _OldXSizeHints { /* pre-R4 Xlib structure */
+            long flags;
+            int x, y;
+            int width, height;
+            int min_width, min_height;
+            int max_width, max_height;
+            int width_inc, height_inc;
+            struct {
+                    int x;
+                    int y;
+            } min_aspect, max_aspect;
+        };
+    }}}
+    instance {
+        # TODO create resources
+        private: char       *title;
+        private: int         wm_timeout;
+        private: Boolean     wait_for_wm;
+        private: Boolean     transient;
+        private: Boolean     urgency;
+        private: Widget      client_leader;
+        private: String      window_role;
+        # Ok, this we can't parse...
+        # use a code block to define that struct.
+        #struct _OldXSizeHints { /* pre-R4 Xlib structure */
+        #    long flags;
+        #    int x, y;
+        #    int width, height;
+        #    int min_width, min_height;
+        #    int max_width, max_height;
+        #    int width_inc, height_inc;
+        #    struct {
+        #            int x;
+        #            int y;
+        #    } min_aspect, max_aspect;
+        #} size_hints;
+        private: struct _OldXSizeHints size_hints;
+        private: XWMHints    wm_hints;
+        private: int base_width;
+        private: int base_height;
+        private: int win_gravity;
+        private: Atom title_encoding;
+    }
+};
+
+widget VendorShell : WMShell {
+    class {
+        XtPointer       extension;          /* pointer to extension record      */
+    }
+    instance {
+        private: int    vendor_specific;
+    }
+};
+
+widget TransientShell : VendorShell {
+    class {
+        XtPointer       extension;          /* pointer to extension record      */
+    }
+    instance {
+        # TODO
+        private: Widget transient_for;
+    }
+};
+
+widget TopLevelShell : VendorShell {
+    class {
+        XtPointer       extension;          /* pointer to extension record      */
+    }
+    instance {
+        # TODO
+        private: char       *icon_name;
+        private: Boolean     iconic;
+        private: Atom        icon_name_encoding;
+    }
+};
+
+widget SessionShell : ApplicationShell {
+    class {
+        XtPointer       extension;          /* pointer to extension record */
+    }
+    instance {
+        # TODO
+        private: SmcConn         connection;
+        private: String          session_id;
+        private: String*         restart_command;
+        private: String*         clone_command;
+        private: String*         discard_command;
+        private: String*         resign_command;
+        private: String*         shutdown_command;
+        private: String*         environment;
+        private: String          current_dir;
+        private: String          program_path;
+        private: unsigned char   restart_style;
+        private: unsigned char   checkpoint_state;
+        private: Boolean         join_session;
+        private: XtCallbackList  save_callbacks;
+        private: XtCallbackList  interact_callbacks;
+        private: XtCallbackList  cancel_callbacks;
+        private: XtCallbackList  save_complete_callbacks;
+        private: XtCallbackList  die_callbacks;
+        private: XtCallbackList  error_callbacks;
+        private: XtSaveYourself  save;
+        private: XtInputId       input_id;
+        private: XtPointer       ses20;
+        private: XtPointer       ses19;
+        private: XtPointer       ses18;
+        private: XtPointer       ses17;
+        private: XtPointer       ses16;
+        private: XtPointer       ses15;
+        private: XtPointer       ses14;
+        private: XtPointer       ses13;
+        private: XtPointer       ses12;
+        private: XtPointer       ses11;
+        private: XtPointer       ses10;
+        private: XtPointer       ses9;
+        private: XtPointer       ses8;
+        private: XtPointer       ses7;
+        private: XtPointer       ses6;
+        private: XtPointer       ses5;
+        private: XtPointer       ses4;
+        private: XtPointer       ses3;
+        private: XtPointer       ses2;
+        private: XtPointer       ses1;
+    }
+};
+
+
+widget ApplicationShell : TopLevelShell {
+    class {
+        XtPointer       extension;          /* pointer to extension record */
+    }
+    instance {
+        # TODO
+        private: char *class;
+        private: XrmClass xrm_class;
+        private: int argc;
+        private: char **argv;
+    }
 };
 
