@@ -32,7 +32,7 @@ widget FooThing : BaseType {
     class {
 	int foo_thing_int = 0xF001;
 	long foo_thing_long = 0xF002;
-	void (*funcptr)(int, int) = 0;
+	void (*funcptr)(int /* a */, int /* b */) = PointedToFunc;
         XtWidgetProc test_func = TestFunc;
     }
     code "TestFunc" {{{

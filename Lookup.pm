@@ -65,8 +65,10 @@ my %typedef2decl = (
 );
 
 # This function returns an expanded typedef, if we know it at least.
-# This is mostly used to be able to declare functions, given a typedef name
+# This is used to be able to declare functions, given a typedef name
 # that describes a pointer to them.
+# It should do somehting sensible when confronted with a direct declaration
+# of a pointer-to-function.
 
 sub funcTypedef2declaration
 {
@@ -75,8 +77,18 @@ sub funcTypedef2declaration
     my $format = $typedef2decl{$name};
 
     if (!defined $format) {
-	#warn "Function typedef '$name' is unknown";
 	$format = $default;
+
+	# Check if it is a directly defined function pointer.
+	# In that case, remove the pointer.
+	# This is still cheating, not having parsed the declaration properly.
+	# Look for the string (*%s)(.
+	# It does not work for for example  int (*ptr[])(int, double);
+	if ($format =~ /\(*\w*\*%s\)\(/p) {
+	    $format = ${^PREMATCH}."%s(".${^POSTMATCH};
+	} else {
+	    warn "Function typedef(!?) '$name' is unknown";
+	}
     }
 
     return $format;

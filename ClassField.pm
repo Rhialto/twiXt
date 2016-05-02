@@ -66,6 +66,11 @@ sub analyze
 	    my $Class = $widget->{Name};
 	    my $init_subclass = $self->{init_subclass};
 
+	    # If type is a pattern, make it into a cast
+	    if ($type =~ /%/) {
+		$type = sprintf $type, "";
+	    }
+
 	    # Is this a good idea?
 	    # and if so, should it be here?
 	    if (!defined $init_subclass || $init_subclass eq "") {
@@ -110,19 +115,27 @@ sub is_function_pointer
     #print STDERR "ClassField::is_function_pointer: ", Dumper($self), "\n";
     my $type = $self->{declaration_specifiers};
 
+    # declaration_specifiers =>  'WidgetProc'
+    # declarator             =>  'ptr'
+    # declaration_pattern    =>  'WidgetProc %s'
     if ($type =~ /(Proc|Func|Handler|Converter)$/) {
 	#print STDERR "yes: $type\n";
+	# return something that is not undef and will be recognized
+	# by funcTypedef2declaration().
 	return $type;
     }
+    # NOTE: WidgetProc *foo is NOT a function pointer.
 
-    # declarator          =>  '(*funcptr)(int, int)'
-    # declaration_pattern =>  'void (*%s)(int, int)'
+    # declaration_specifiers =>  'void'
+    # declarator             =>  '(*funcptr)(int, int)'
+    # declaration_pattern    =>  'void (*%s)(int, int)'
     my $declarator = $self->{declarator};
     if ($declarator =~ /^\(\*.*\)\(.*\)$/) {
 	#print STDERR "yes: $self->{declaration_pattern}\n";
 	return $self->{declaration_pattern};
-	# Unrecognized by funcTypedef2declaration, so the
-	# default will be used
+	# Unrecognized by funcTypedef2declaration, so the default will be used
+	# (which happens to be declaration_pattern)
+	# and the * pointer will be removed.
     }
 
     #print STDERR "no.\n";
