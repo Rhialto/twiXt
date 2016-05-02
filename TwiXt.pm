@@ -159,7 +159,7 @@ sub class_field_override
 {
     my TwiXt $self = $_[0];
 
-    my $parts = $self->all_of(
+    my $parts = $self->concatenation_of(
 	sub { $self->ident_lowercase() },
 	sub { $self->expect(qr/=/) },
 	sub { $self->substring_before(qr/;/) },
@@ -168,7 +168,7 @@ sub class_field_override
 
     return {
 	field => $parts->[0],
-	init  => $parts->[2],
+	init  => trim($parts->[2]),
     };
 }
 
@@ -454,7 +454,7 @@ sub block_scope_of
 # Expect all of the code refs in sequence and return a reference to a
 # list containing their results.
 # XXX Doesn't do fancy commit handling.
-sub all_of_try_1
+sub concatenation_of_try_1
 {
     (my TwiXt $self, my @codes) = @_;
 
@@ -468,7 +468,7 @@ sub all_of_try_1
 }
 
 # A merge between any_of and list_of
-sub all_of #_try_2
+sub concatenation_of #_try_2
 {
     my TwiXt $self = shift;
     my @ret = ();
