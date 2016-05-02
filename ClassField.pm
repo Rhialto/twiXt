@@ -167,10 +167,13 @@ sub analyze_function_pointer
 	    # Definition: FooFunc %s(int i, long l)
 	    $pat = funcTypedef2definition($type, $self->{declaration_pattern});
 	    my $define = sprintf $pat, $value;
-            my $body = $widget->{code_blocks}->{$value}->{body} || "";
+            my $body = $for_class->{code_blocks}->{$value}->{body} ||
+                       $widget->{code_blocks}->{$value}->{body} ||
+                       "";
 
 	    $for_class->{define_class_functions} .= "${define}\n{\n${body}\n}\n\n";
 	}
     }
 }
+
 1;
