@@ -59,12 +59,16 @@ sub analyze
     my $super = $self->{super};
     my $superclass;
 
-    if (defined $super && exists $allwidgets->{$super}) {
-	$superclass = $allwidgets->{$super};
-	$self->{superclass} = $superclass;
+    if (defined $super) {
+	if (exists $allwidgets->{$super}) {
+	    $superclass = $allwidgets->{$super};
+	    $self->{superclass} = $superclass;
 
-	#print "First Analyzing $superclass->{Name} before $self->{Name}\n";
-	$superclass->analyze($allwidgets);
+	    #print "First Analyzing $superclass->{Name} before $self->{Name}\n";
+	    $superclass->analyze($allwidgets);
+	} else {
+	    warn "Superclass ${super} of $self->{Name} not defined.";
+	}
     }
 
     print "Analyzing $self->{Name}\n";
