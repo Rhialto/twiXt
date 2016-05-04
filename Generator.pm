@@ -97,7 +97,8 @@ ${xtrs}
 extern WidgetClass $widget->{class_record_instance_ptr};
 
 /* C Widget type definition */
-typedef struct $widget->{instance_record_type} *${Name};
+typedef struct $widget->{class_record_type} *${Name}WidgetClass;
+typedef struct $widget->{instance_record_type} *${Name}Widget;
 
 /* New class method entry points */
 
