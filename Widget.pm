@@ -38,6 +38,7 @@ use fields qw(
     no_inherit_class_fields
     Private_h_file_name
     Public_h_file_name
+    sourcefilename
     super
     superclass
 );
@@ -61,10 +62,8 @@ sub analyze
     if (defined $super && exists $allwidgets->{$super}) {
 	$superclass = $allwidgets->{$super};
 	$self->{superclass} = $superclass;
-    }
 
-    if (defined $superclass) {
-	print "First Analyzing $superclass->{Name} before $self->{Name}\n";
+	#print "First Analyzing $superclass->{Name} before $self->{Name}\n";
 	$superclass->analyze($allwidgets);
     }
 

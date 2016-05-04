@@ -60,6 +60,7 @@ sub widget
     my Widget $widget = Widget->new(
 	Name             => $name,
 	super            => $super,
+	sourcefilename   => $self->{reader_filename},
 	%{$block}
     );
 

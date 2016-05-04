@@ -28,7 +28,8 @@ sub main
 	#my $tree = $parser->from_file($filename);
 
 	open my $file, "<", $filename;
-	$parser->{reader_filestack} = ();
+	$parser->{reader_filename} = $filename;
+	$parser->{reader_filestack} = [];
 	$parser->{reader_file} = $file;
 
 	my $tree = $parser->from_reader(\&reader);
