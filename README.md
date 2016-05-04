@@ -171,8 +171,8 @@ Resources consist of the following parts:
   The name to use with XtSetValues() and XtGetValues() to access
   the resource. This is in principle an arbitrary string, but
   conventionally it is in camelCase (lower case initial).
-  An instance field with lower_case name is also generated from this
-  name.
+  This name is actually generated from the instance field name,
+  which is in lower_case_style.
   To prevent typos in the name, a `#define` is generated with the same
   name: `XtN`_resourceName_.  
 
