@@ -24,6 +24,8 @@ sub main
 	push @args, "testfile.xt";
     }
 
+    my %tree;
+
     for my $filename (@args) {
 	#my $tree = $parser->from_file($filename);
 
@@ -32,19 +34,23 @@ sub main
 	$parser->{reader_filestack} = [];
 	$parser->{reader_file} = $file;
 
-	my $tree = $parser->from_reader(\&reader);
+	my $twigs = $parser->from_reader(\&reader);
 
-	#print STDERR "Returned from parser->from_file: ", Dumper($tree), "\n";
+	for my $k (keys %{$twigs}) {
+	    $tree{$k} = $twigs->{$k};
+	}
 
-	analyze_all($tree);
-
-	#print STDERR "Returned from analyze_all: ", Dumper($tree), "\n";
-	#print STDERR "Returned from analyze_all: ";
-	#p($tree);
-	#print STDERR "\n";
-
-	generate_all($tree);
+	#print STDERR "Returned from parser->from_file: ", Dumper($treepart), "\n";
     }
+
+    analyze_all(\%tree);
+
+    #print STDERR "Returned from analyze_all: ", Dumper(\%tree), "\n";
+    #print STDERR "Returned from analyze_all: ";
+    #p($tree);
+    #print STDERR "\n";
+
+    generate_all(\%tree);
 
     return 0;
 }
