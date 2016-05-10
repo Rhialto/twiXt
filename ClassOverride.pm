@@ -9,6 +9,17 @@ use fields qw(
     name
 );
 
+# A ClassOverride object:
+#
+# {
+# 	name => "overridden class name",
+# 	fields => {
+# 		    "fieldname" => {
+# 					field => "fieldname",
+# 					init  => "initialisation"
+# 				   }
+# 		  }
+# }
 sub new
 {
     (my $class, my @fields) = @_;
