@@ -78,12 +78,18 @@ sub widget_block
     $self->sequence_of( sub {
 	$self->any_of(
 	    sub {
-		my $code = $self->code_definition();
+		my CodeBlock $code = $self->code_definition();
 		my $name = $code->{name};
-		$found{code_blocks}->{$name} = $code;
+		# Concatenate code bodies, if given multiple times.
+		if (exists $found{code_blocks}->{$name}) {
+		    my CodeBlock $existing = $found{code_blocks}->{$name};
+		    $existing->append($code->{body});
+		} else {
+		    $found{code_blocks}->{$name} = $code;
+		}
 	    },
 	    sub {
-		my $override = $self->class_override();
+		my ClassOverride $override = $self->class_override();
 		my $name = $override->{name};
 		$found{class_overrides}->{$name} = $override;
 	    },
