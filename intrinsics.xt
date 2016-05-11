@@ -179,7 +179,7 @@ widget RectObj : Object {   # Or Rect
         XtProc          class_initialize
                        = 0; sub= %cClassInitialize; /* class initialization proc        */
         XtWidgetClassProc class_part_initialize
-                   = 0; sub= %cClassPartInitialize; /* dynamic initialization           */
+                           = %cClassPartInitialize; /* dynamic initialization           */
         XtEnum          class_inited = FALSE;       /* has class been initialized?      */
         XtInitProc      initialize = 0;
                                 sub= %cInitialize;  /* initialize subclass fields       */
@@ -320,6 +320,8 @@ widget Constraint : Composite {
         delete_child = XtInheritDeleteChild;
     }
     class {
+        # TODO: subclasses of Constraint don't have a nice way to
+        # specify their constraint resources.
         XtResourceList resources;	  /* constraint resource list	     */
         Cardinal   num_resources;         /* number of constraints in list  */
         Cardinal   constraint_size;       /* size of constraint record      */
@@ -345,22 +347,44 @@ widget Shell : Composite {
 #define _XtShellNotReparented   ((Boolean)(1<<1))
 #define _XtShellPPositionOK     ((Boolean)(1<<2))
 #define _XtShellGeometryParsed  ((Boolean)(1<<3))
+
+#define BIGSIZE ((Dimension)32767)
+
     }}}
     instance {
-        # TODO create resources
-        private: char       *geometry;
-        private: XtCreatePopupChildProc  create_popup_child_proc;
+        # Override some resources from Core with different initial
+        # values.
+        resource: Position(Position) x @:core.x = BIGSIZE;
+        resource: Position(Position) y @:core.y = BIGSIZE;
+        resource: Int(Depth) depth : Cardinal @:core.depth
+                      = _XtShellDepth();
+        resource: Colormap(Colormap) colormap @:core.colormap
+                      = _XtShellColormap();
+        resource: Boolean(Sensitive) ancestor_sensitive
+                      @:core.ancestor_sensitive = _XtShellAncestorSensitive();
+
+        public: String(Geometry) geometry =R(String)NULL;
+
+        public: Function(CreatePopupChildProc) create_popup_child_proc : XtCreatePopupChildProc
+                =R(Function) NULL;
+
         private: XtGrabKind  grab_kind;
         private: Boolean     spring_loaded;
         private: Boolean     popped_up;
-        private: Boolean     allow_shell_resize;
-        private: Boolean     client_specified; /* re-using old name */
-        private: Boolean     save_under;
-        private: Boolean     override_redirect;
 
-        private: XtCallbackList popup_callback;
-        private: XtCallbackList popdown_callback;
-        private: Visual*     visual;
+        public: Boolean(AllowShellResize) allow_shell_resize = False;
+
+        private: Boolean     client_specified; /* re-using old name */
+
+        public: Boolean(SaveUnder) save_under = False;
+
+        public: Boolean(OverrideRedirect) override_redirect = False;
+
+        public: Callback(Callback) popup_callback =R(Callback) NULL;
+
+        public: Callback(Callback) popdown_callback =R(Callback) NULL;
+
+        public: Visual(Visual) visual = CopyFromParent;
     }
 };
 
@@ -371,6 +395,9 @@ widget OverrideShell : Shell {
     # TODO: OverrideShellClassRec
     instance {
         private: int frabjous;
+
+        resource: Boolean(OverrideRedirect) override_redirect @:shell.override_redirect = True;
+        resource: Boolean(SaveUnder) save_under @:shell.save_under = True;
     }
 };
 
@@ -440,6 +467,8 @@ widget TransientShell : VendorShell {
     instance {
         # TODO
         private: Widget transient_for;
+
+        resource: Boolean(SaveUnder) save_under @:shell.save_under = True;
     }
 };
 
