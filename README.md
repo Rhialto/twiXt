@@ -239,7 +239,9 @@ Resources consist of the following parts:
   By using the `resource` keyword instead of `public`, you indicate
   that no field is generated to go with the resource. Use an
   appropriate other field instead. It also allows the use of the `@`
-  which is not allowed for `public`.
+  which is not allowed for `public`. The field is usually in the
+  widget's own instance part record. If you want to specify the full
+  field name in the instance record, prefix the it with `:`.
 
 - default_type:
   Resources can be initialized by the resource system automatically.

@@ -59,9 +59,9 @@ sub analyze
     # The offset key is optional; only used when resource setting doesn't use a
     # simple variable. In that case, generating the instance field is
     # suppressed.
-    my $offset = $self->{offset} || $l_name;
+    my $offset = $self->{offset} // $l_name;
 
-    my $comment = $self->{comment} || "";
+    my $comment = $self->{comment} // "";
 
     # A resource generates various things:
     # #define for resource name
@@ -83,13 +83,20 @@ sub analyze
     push @{$widget->{code_xtc}}, [ $c, $self ];
     push @{$widget->{code_xtr}}, [ $r, $self ];
 
+    # Prefix the widget's own instance Part unless overridden.
+    if ($offset =~ s/^://) {
+	# Use as-is (but without the leading colon).
+    } else {
+	$offset = $widget->{l_name}.".".${offset};
+    }
+
     # A structure for resource init and get/set
     my $res = "    { $comment\n".
               "        .resource_name   = XtN${name},\n".
               "        .resource_class  = XtC${Class},\n".
               "        .resource_type   = XtR${Repr},\n".
               "        .resource_size   = sizeof (${ctype}),\n".
-              "        .resource_offset = XtOffsetOf($widget->{instance_record_type}, $widget->{l_name}.${offset}),\n".
+              "        .resource_offset = XtOffsetOf($widget->{instance_record_type}, ${offset}),\n".
               "        .default_type    = $self->{default_type},\n".
               "        .default_addr    = (XtPointer)($self->{default_addr}),\n".
 	      "    },\n";
