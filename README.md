@@ -3,8 +3,11 @@ TwiXt - Templated Widgets for Xt
 
 TwiXt is intended to make it easier to write widgets for X, using the X
 Toolkit Intrinsics. Doing so by hand is not really difficult, but it is
-a bit tedious, since C is not really object-oriented, but the widgets
-are based on classes with single inheritance.
+a bit tedious.
+The Xt widgets are based on the idea of classes with single inheritance.
+On the other hand, the implementation language C is not object-oriented,
+so there is lots of work for the library to do and lots of details for
+the widget implementer to write.
 
 If you specify a widget (class) named FooThing, TwiXt will generate for
 you the public header file `FooThing.h`, the private header file
@@ -42,8 +45,10 @@ documentation](http://www.x.org/releases/X11R7.7/doc/libXt/intrinsics.html).
 TwiXt aims to make use of Xt easier, but fully explaining it is beyond
 its scope.
 
-See [Free O'Reilly books](http://www.x.org/wiki/ProgrammingDocumentation/) and
-[the X.org website](http://www.x.org/releases/X11R7.7/doc/index.html#client-devel).
+See also some [Free O'Reilly
+books](http://www.x.org/wiki/ProgrammingDocumentation/) and client
+development documentation on [the X.org
+website](http://www.x.org/releases/X11R7.7/doc/index.html#client-devel).
 
 Class fields
 ------------
@@ -73,6 +78,8 @@ There are some general conventions:
 - field names are spelled in lower_case (with underscores).
 
 Where needed, these forms can seamlessly be converted into each other.
+This happens for instance when a function name is generated from a field
+name.
 
 A field description can optionally include initalization values in two
 variants: one for class records in the class implementation itself,
@@ -82,15 +89,6 @@ These can be overriden if desired.
 
 If no class expression is given, it usually defaults to 0.
 If no subclass expression is given, it defaults to the class expression.
-
-For use in subclasses, a `#define XtInherit`_Field_ will be generated.
-Also, if the value which is used in the C initializer looks like a
-function name (is in proper CamelCase), a function declaration and
-definition will be generated.
-
-Exception: if the text contains the word `Inherit` then that name will
-be used for the `#define` instead. In that case also there will be no
-function declaration and body for this name.
 
 TwiXt doesn't really analyze the structure of your expressions (the C
 compiler will complain later if you write nonsense),
@@ -110,10 +108,29 @@ These comments are only possible in designated locations.
 TwiXt-style comments are allowed anywhere. They start with a hash symbol
 `#` and continue to the end of the line.
 
+### Function pointers
+
 For class fields that represent a C function pointer (i.e. their type
-name ends in `Proc`, `Func`, `Handler` or `Converter`), a declaration
-for the corresponding function is generated, and also a template for a
-definition (with empty function body).
+name ends in `Proc`, `Func`, `Handler` or `Converter`, or a simplistic
+pattern matching on the declaration succeeds), the following code
+fragments are generated.
+
+For use in subclasses, a `#define XtInherit`_Field_ will be produced.
+Also, if the value which is used in the C initializer looks like a
+function name (is in proper CamelCase), a function declaration and
+definition will be generated.
+(Exception: if the initialisation value contains the word `Inherit` then
+that name will be used for the `#define` instead. In that case also
+there will be no function declaration and body for this name.)
+
+The signature of the functions is based on a known list of type names (derived
+from the header files `<X11/IntrinsicP.h>` and `<X11/Intrinsic.h>`) and some
+pattern matching for other cases. There is no real parser of C declarations or
+expressions, so this process can be fooled.
+
+The function body can be given in a block `code "FunctionName" {{{ ...
+}}}`.
+Otherwise it wil be empty.
 
 ### Class field overrides
 
@@ -169,14 +186,16 @@ Resources consist of the following parts:
 
 - resource_name:
   The name to use with XtSetValues() and XtGetValues() to access
-  the resource. This is in principle an arbitrary string, but
+  the resource (or with XtCreateWidget() or in a resource file).
+  This is in principle an arbitrary string, but
   conventionally it is in camelCase (lower case initial).
   This name is actually generated from the instance field name,
   which is in lower_case_style.
-  To prevent typos in the name, a `#define` is generated with the same
-  name: `XtN`_resourceName_.  
+  A `#define` is generated with the same name: `XtN`_resourceName_.
+  It is usual to use the define instead of the literal string.
+  This prevents typos in the name.
 
-  In the example, this is border_color.
+  In the example, this is `border_color`.
 
 - resource_class:
   Not to be confused with "class" as in the meaning of "type", but
@@ -184,19 +203,17 @@ Resources consist of the following parts:
   the user can easily set all Background-related colours to the same
   value in a resource file. Resource classes are spelled in CamelCase
   (upper case initial).
-  To prevent typos in the name, a `#define` is generated with the same
-  name: `XtN`_ClassName_.
+  A `#define` is generated with the same name: `XtN`_ClassName_.
 
-  In the example, this is BorderColor.
+  In the example, this is `BorderColor`.
 
 - resource_type:
   This is the name of the type which represents the value of the
   resource. Xt type converters know of these names to convert for
   instance strings into the correct values.
-  To prevent typos in the name, a `#define` is generated with the same
-  name: `XtR`_ResourceType_.
+  A `#define` is generated with the same name: `XtR`_ResourceType_.
 
-  In the example, this is Pixel.
+  In the example, this is `Pixel`.
 
 - resource_size:
   This is the size of objects of type `resource_type`. Normally this
@@ -234,11 +251,14 @@ Resources consist of the following parts:
     * `XtRImmediate` (which copies the value without converting it):
       just use a simple `=` sign
     * `XtRCallProc` (which calls a function of signature
-      [`XtResourceDefaultProc`](http://www.x.org/releases/X11R7.7/doc/libXt/intrinsics.html#XtResourceDefaultProc)): use `= FunctionName()`.
+      [`XtResourceDefaultProc`](http://www.x.org/releases/X11R7.7/doc/libXt/intrinsics.html#XtResourceDefaultProc)):
+      use `= FunctionName()`.
 
 - default_addr:
   This should point to an appropriate value of the type named by
   `default_type`.
+  When the Intrinsics library initializes the field, it will normally
+  use a converter from the default_type to the resource_type.
 
   In the example, this is `"XtDefaultForeground"`.
 
@@ -258,7 +278,6 @@ have them in instances, that would not be useful. You'd have multiple
 alternative functions to point to. And that is getting out of TwiXt's
 scope (and ability to invent syntax for it).
 
-{>>
+<!--
  vim:expandtab:ft=markdown:
-<<}
-
+-->
