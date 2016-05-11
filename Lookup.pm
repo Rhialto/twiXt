@@ -198,6 +198,8 @@ my %common_reprname_to_ctype = (
     StringArray      => "String *",
     StringTable      => "String *",
     TranslationTable => "XtTranslations",
+    UnsignedChar     => "unsigned char",
+    Visual           => "Visual *",
 
     EditMode         => undef,
     Justify          => undef,
