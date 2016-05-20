@@ -148,16 +148,6 @@ sub analyze
 
     # Analyze class_fields (type ClassField)
     if (defined (my $fields = $self->{class_fields})) {
-#	foreach my $f (@$fields) {
-#	    $f->analyze($self);
-#	}
-#
-#	my $classdecl = "";
-#	foreach my $f (@$fields) {
-#	    $classdecl .= $f->{code_class_decl};
-#	}
-#
-#	$self->{code_class_decl} = $classdecl;
 	$self->{code_class_decl} = $self->analyze_class_fields($fields);
 
 	$self->{code_init_self} = $self->
@@ -166,7 +156,9 @@ sub analyze
 
     # Analyze class_extensions which have more ClassFields
     if (defined (my $extens = $self->{class_extensions})) {
-	foreach my $e (values %$extens) {
+	my ClassExtension $e;
+
+	foreach $e (values %$extens) {
 	    $e->analyze($self);
 	}
     }
@@ -187,12 +179,13 @@ sub analyze_class_fields
 
     return unless defined $fields;
 
-    foreach my $f (@$fields) {
+    my ClassField $f;
+
+    foreach $f (@$fields) {
 	$f->analyze($widget);
     }
 
     my $classdecl = "";
-    my ClassField $f;
     foreach $f (@$fields) {
 	$classdecl .= $f->{code_class_decl};
     }
