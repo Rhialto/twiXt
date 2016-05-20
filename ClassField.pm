@@ -3,6 +3,7 @@ package ClassField;
 use strict;
 use warnings;
 use Data::Dumper;
+use CodeBlock;
 use Widget;
 use NameUtils;
 use Lookup;
@@ -36,6 +37,7 @@ sub new
 
 #
 # This is called for every classfield while analyzing its class.
+# Also called for fields in class extension records.
 #
 
 sub analyze
@@ -48,10 +50,10 @@ sub analyze
     # Test if this is an own field or an override for a superclass field
     if (exists $self->{field}) {
 	$self->{code_class_decl} =
-	"        ".$self->{declaration}."; $comment\n";
+	"    ".$self->{declaration}."; $comment\n";
 
 	$self->{code_init_pattern} =
-	"        .".$self->{field}." = %s, $comment\n";
+	"    ".$self->{field}." = %s, $comment\n";
 
 	my $type = $self->is_function_pointer();
 
@@ -96,6 +98,43 @@ sub analyze
 	    $widget->{inherit_defines} .= $define;
 
 	    #print "DEFINE: $define";
+
+            # Create boilerplate code in the class_part_initialize
+            # function to actually inherit from the superclass.
+            # Only if it has a superclass, of course.
+            # This generates a few too many fragments, for silly things
+            # you don't want to inherit anyway.
+
+            if (defined $widget->superclass()) {
+                my Widget $rootclass = $widget->rootclass();
+                my $classinitfuncname =
+                    $widget->find_class_field_init_by_name($rootclass->{Name}, "class_part_initialize");
+
+                if (defined $classinitfuncname) {
+                    my CodeBlock $cb = $widget->{code_blocks}->{$classinitfuncname};
+
+                    if (!defined $cb) {
+                        my $body = "    ${Class}Rec *self, *super;\n\n".
+                                   "    self = (${Class}Rec *) class;\n".
+                                   "    super = (${Class}Rec *) class->$rootclass->{l_name}_class.superclass;\n\n";
+                        $cb = new CodeBlock(name => $classinitfuncname,
+                                            body => $body);
+                        $widget->{code_blocks}->{$classinitfuncname} = $cb;
+                        #print STDERR "code_blocks $classinitfuncname: $body";
+                    }
+
+                    my $body = "    if (self->$widget->{l_name}_class.$field == $defname)\n".
+                               "        self->$widget->{l_name}_class.$field = super->$widget->{l_name}_class.$field;\n\n";
+
+                    $cb->append($body);
+                    #print STDERR "code_blocks append $classinitfuncname: $body";
+
+                } else {
+                    #print STDERR "No inherit code for $defname\n";
+                }
+            } else {
+                #print STDERR "No inherit code for root class $Class\n";
+            }
 	}
     }
 
@@ -167,8 +206,8 @@ sub analyze_function_pointer
 	    # Definition: FooFunc %s(int i, long l)
 	    $pat = funcTypedef2definition($type, $self->{declaration_pattern});
 	    my $define = sprintf $pat, $value;
-            my $body = $for_class->{code_blocks}->{$value}->{body} ||
-                       $widget->{code_blocks}->{$value}->{body} ||
+            my $body = $for_class->{code_blocks}->{$value}->{body} //
+                       $widget->{code_blocks}->{$value}->{body} //
                        "";
 
 	    $for_class->{define_class_functions} .= "${define}\n{\n${body}\n}\n\n";

@@ -2,12 +2,15 @@ package Widget;
 
 use strict;
 use warnings;
+use ClassField;
+use ClassOverride;
 use NameUtils;
 use Data::Dumper;
 use fields qw(
     all_class_part_instance_decls
     all_instance_part_instance_decls
     analyzed
+    class_extensions
     class_fields
     class_overrides
     class_part_instance_decl
@@ -344,6 +347,54 @@ sub expand_pattern
     } else {
 	return $pattern;
     }
+}
+
+# TODO: this has lots of overlap with sub analyze_init_with_field.
+
+sub find_class_field_init_by_name
+{
+    (my Widget $self, my $class_name, my $field_name) = @_;
+
+    # First look at overrides
+
+    my ClassOverride $over = $self->{class_overrides}->{$class_name};
+
+    if (defined $over) {
+	my $init = $over->{fields}->{$field_name}->{init};
+
+	if (defined $init) {
+	    # If it contains a pattern, plug in the class name
+	    $init = $self->expand_pattern($init);
+
+	    return $init;
+	}
+    }
+
+    my Widget $superclass = $self->is_subclass_of($class_name);
+
+    if (defined $superclass) {
+	#print STDERR "find_class_field_init_by_name: $class_name::$field_name\n";
+	#print STDERR Dumper($superclass->{class_fields}), "\n";
+
+	foreach my ClassField $class_field (@{$superclass->{class_fields}}) {
+	    if ($class_field->{field} eq $field_name) {
+		my $init;
+
+		# if ($superclass->{Name} eq $self->{Name}) { }
+		if ($superclass == $self) {
+		    $init = $class_field->{init_self};
+		} else {
+		    $init = $class_field->{init_subclass};
+		}
+		# If it contains a pattern, plug in the class name
+		$init = $self->expand_pattern($init);
+
+		return $init;
+	    }
+	}
+    }
+
+    return undef;
 }
 
 if ($0 eq "Widget.pm") {
