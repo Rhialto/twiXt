@@ -8,17 +8,17 @@ widget FooThing : BaseType {
     code "top_h_file" {{{
         /* top_h_file */
     }}}
-    code "top_ph_file" {{{
-        /* top_ph_file */
-    }}}
-    code "top_c_file" {{{
-        /* top_c_file */
-    }}}
     code "bottom_h_file" {{{
         /* bottom_h_file */
     }}}
+    code "top_ph_file" {{{
+        /* top_ph_file */
+    }}}
     code "bottom_ph_file" {{{
         /* bottom_ph_file */
+    }}}
+    code "top_c_file" {{{
+        /* top_c_file */
     }}}
     code "bottom_c_file" {{{
         /* bottom_c_file */
@@ -35,6 +35,12 @@ widget FooThing : BaseType {
 	void (*funcptr)(int /* a */, int /* b */) = PointedToFunc;
         XtWidgetProc test_func = TestFunc;
     }
+    class-extension {
+        int NULLQUARK; /* default extension record name is NULLQUARK */
+    }
+    class-extension FooQuark 3 {
+        XtWidgetProc func_in_extension = ExtensionversionThree;
+    }
     code "TestFunc" {{{
         /* This is to be the body of the function pointed to by WidgetProc test_func */
         return NULL;
@@ -49,7 +55,7 @@ widget FooThing : BaseType {
     }
 };
 
-widget BaseType : Root {
+widget BaseType : Core {
     class {
 	# For class fields you can specify a different default value
 	# for derived classes. Typically this would be a special

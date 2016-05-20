@@ -136,6 +136,15 @@ sub generate_private_h_file
 	}
     }
 
+    my $class_extensions = "";
+
+    if (defined $widget->{class_extensions}) {
+	my ClassExtension $e;
+	for $e (values %{$widget->{class_extensions}}) {
+	    $class_extensions .= $e->{code_struct_decl};
+	}
+    }
+
     my $top_file = $widget->{code_blocks}->{top_ph_file}->{body} || "";
     my $bottom_file = $widget->{code_blocks}->{bottom_ph_file}->{body} || "";
 
@@ -178,6 +187,9 @@ $widget->{all_instance_part_instance_decls}
 typedef struct {
 $widget->{code_class_decl}
 } $widget->{class_record_part_type};
+
+/* Class extension records */
+${class_extensions}
 
 /* Full class record declaration */
 typedef struct $widget->{class_record_type} {

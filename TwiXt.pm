@@ -5,6 +5,7 @@ use warnings;
 
 use parent 'Parser::MGC';
 #use Data::Dumper;
+use ClassExtension;
 use ClassField;
 use ClassOverride;
 use CodeBlock;
@@ -95,15 +96,20 @@ sub widget_block
 	    },
 	    sub {
 	        if ($found{class_fields}) {
-		    $self->fail();
+		    $self->fail("You can specify \"class { .. }\" only once per widget.");
 		}
 		my %flags;
 		$found{class_fields} = $self->class_field_definitions(\%flags);
 		$found{no_inherit_class_fields} = defined $flags{no_inherit};
 	    },
 	    sub {
+		my ClassExtension $extension = $self->class_extension();
+		my $name = $extension->{name};
+		$found{class_extensions}->{$name} = $extension;
+	    },
+	    sub {
 		if ($found{instance_fields}) {
-		    $self->fail();
+		    $self->fail("You can specify \"instance { .. }\" only once per widget.");
 		}
 		$found{instance_fields} = $self->instance_field_definitions();
 	    },
@@ -235,6 +241,35 @@ sub class_field_definition
 	init_self     => $init_self,
 	init_subclass => $init_subclass,
 	comment       => $comment,
+    );
+}
+
+# class-extension name version { class-fields ... }
+sub class_extension
+{
+    my TwiXt $self = $_[0];
+
+    $self->expect(qr/class[ -]extension/);
+    my $id = $self->maybe(sub {
+	    $self->ident_camelcase();
+    });
+
+    my $version = $self->maybe(sub {
+	    $self->token_int();
+    });
+
+    $self->commit();
+
+    my $fields = $self->block_scope_of( sub {
+	$self->sequence_of ( sub {
+	    $self->class_field_definition()
+	} )
+    } );
+
+    return ClassExtension->new(
+	name    => $id // "NULLQUARK",
+	fields  => $fields,
+	version => $version,
     );
 }
 

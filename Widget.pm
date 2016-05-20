@@ -147,28 +147,57 @@ sub analyze
     $self->{code_resources} = [];
 
     # Analyze class_fields (type ClassField)
-    if (defined (my $mems = $self->{class_fields})) {
-	foreach my $m (@$mems) {
-	    $m->analyze($self);
-	}
-
-	my $classdecl = "";
-	foreach my $m (@$mems) {
-	    $classdecl .= $m->{code_class_decl};
-	}
-
-	$self->{code_class_decl} = $classdecl;
+    if (defined (my $fields = $self->{class_fields})) {
+#	foreach my $f (@$fields) {
+#	    $f->analyze($self);
+#	}
+#
+#	my $classdecl = "";
+#	foreach my $f (@$fields) {
+#	    $classdecl .= $f->{code_class_decl};
+#	}
+#
+#	$self->{code_class_decl} = $classdecl;
+	$self->{code_class_decl} = $self->analyze_class_fields($fields);
 
 	$self->{code_init_self} = $self->
 	    analyze_init_class($self, $self->{class_overrides});
     }
 
-    # Analyze instance_fields (type Resource and PrivateInstanceField)
-    if (defined (my $mems = $self->{instance_fields})) {
-	foreach my $m (@$mems) {
-	    $m->analyze($self);
+    # Analyze class_extensions which have more ClassFields
+    if (defined (my $extens = $self->{class_extensions})) {
+	foreach my $e (values %$extens) {
+	    $e->analyze($self);
 	}
     }
+
+    # Analyze instance_fields (type Resource and PrivateInstanceField)
+    if (defined (my $fields = $self->{instance_fields})) {
+	foreach my $f (@$fields) {
+	    $f->analyze($self);
+	}
+    }
+}
+
+# This is used from Widget but also from ClassExtension.
+sub analyze_class_fields
+{
+    my Widget $widget = $_[0];
+    my $fields = $_[1];
+
+    return unless defined $fields;
+
+    foreach my $f (@$fields) {
+	$f->analyze($widget);
+    }
+
+    my $classdecl = "";
+    my ClassField $f;
+    foreach $f (@$fields) {
+	$classdecl .= $f->{code_class_decl};
+    }
+
+    return $classdecl;
 }
 
 # Generate some code to initialize the class fields of a class.
@@ -230,9 +259,7 @@ sub analyze_init_with_field
 	} else {
 	    $value = $m->{$init};
 	}
-	if ($value =~ /%/) {
-	    $value = $for_class->expand_pattern($value);
-	}
+	$value = $for_class->expand_pattern($value);
 	$code .= sprintf $m->{code_init_pattern}, $value;
 
 	$m->analyze_function_pointer($self, $for_class, $value);
@@ -304,7 +331,7 @@ sub expand_pattern
 	    my $format = ${^MATCH}; # $&;
 	    $pattern = ${^POSTMATCH};	# for next iteration
 
-	    my $modifier    = $1 || "";
+	    my $modifier    = $1 // "";
 	    my $valueletter = $2;
 
 	    #print STDERR "rest pattern= $pattern\n";
