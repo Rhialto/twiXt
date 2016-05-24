@@ -148,7 +148,7 @@ sub parseX11header
     }
 }
 
-if ($0 eq "Lookup.pm" && $ARGV[0] eq "parse") {
+if ($0 eq __FILE__ && @ARGV > 0 && $ARGV[0] eq "parse") {
     parseX11header("/usr/X11R7/include/X11/Intrinsic.h");
     parseX11header("/usr/X11R7/include/X11/IntrinsicP.h");
 
@@ -156,6 +156,8 @@ if ($0 eq "Lookup.pm" && $ARGV[0] eq "parse") {
     for my $k (sort keys %collected) {
 	printf "    %-24s => '%s',\n", $k, $collected{$k};
     }
+
+    exit 0;
 }
 
 # Only needs to contain the non-identity mappings.

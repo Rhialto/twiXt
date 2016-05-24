@@ -2,6 +2,7 @@ package Widget;
 
 use strict;
 use warnings;
+use ClassExtension;
 use ClassField;
 use ClassOverride;
 use NameUtils;
@@ -62,6 +63,7 @@ sub analyze
     my $super = $self->{super};
     my $superclass;
 
+    # Analyze the superclass first, if necessary.
     if (defined $super) {
 	if (exists $allwidgets->{$super}) {
 	    $superclass = $allwidgets->{$super};
@@ -172,6 +174,9 @@ sub analyze
 }
 
 # This is used from Widget but also from ClassExtension.
+# Loop through all ClassFields and call their analyze().
+# Then loop again and collect the text that was created for the
+# declaration of these fields.
 sub analyze_class_fields
 {
     my Widget $widget = $_[0];
@@ -369,6 +374,9 @@ sub expand_pattern
     }
 }
 
+# Finds an initialisation, given a field name and the class it's in.
+# Takes base class overrides into account.
+#
 # TODO: this has lots of overlap with sub analyze_init_with_field.
 
 sub find_class_field_init_by_name
@@ -417,7 +425,7 @@ sub find_class_field_init_by_name
     return undef;
 }
 
-if ($0 eq "Widget.pm") {
+if ($0 eq __FILE__ && @ARGV > 0 && $ARGV[0] eq "test") {
     my $widget = Widget->new(
 	Name => "ClassName",
 	superclass => Widget->new(
@@ -427,8 +435,9 @@ if ($0 eq "Widget.pm") {
 
     print STDERR $widget->expand_pattern("CamelCase:  %%c  %c  %%s  %s\n");
     print STDERR $widget->expand_pattern("camelCase:  %%lc %lc  %%ls %ls\n");
-    print STDERR $widget->expand_pattern("camel_case: %%_c %_c %%_s %_s\n");
-    print STDERR $widget->expand_pattern("camel_case: %%_x %_x %%_x %_x\n");
+    print STDERR $widget->expand_pattern("lower_case: %%_c %_c %%_s %_s\n");
+
+    exit 0;
 }
 
 1;
