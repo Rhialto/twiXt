@@ -30,6 +30,7 @@ use fields qw(
     c_file_name
     declare_class_functions
     define_class_functions
+    generate_level
     inherit_defines
     instance_fields
     instance_part_instance_decl

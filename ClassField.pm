@@ -53,7 +53,7 @@ sub analyze
 	"    ".$self->{declaration}."; $comment\n";
 
 	$self->{code_init_pattern} =
-	"    ".$self->{field}." = %s, $comment\n";
+	"    .".$self->{field}." = %s, $comment\n";
 
 	my $type = $self->is_function_pointer();
 
