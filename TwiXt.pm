@@ -21,11 +21,38 @@ sub parse
 
     $self->skip_ws();
 
-    my $widgets = $self->list_of( qr/;/,
-	sub { $self->widget() }
-    );
+    my $widgets = [];
+
+    $self->sequence_of( sub {
+	$self->any_of(
+	    sub {
+		$self->directive()
+	    },
+	    sub {
+		my $w = $self->widget();
+		$self->maybe_expect(qr/;/);
+		push @$widgets, $w;
+	    }
+	)
+    });
 
     return hashed_list_of_hashes("Name", $widgets);
+}
+
+sub directive
+{
+    my TwiXt $self = $_[0];
+
+    $self->expect(qr/%%/);
+    $self->expect(qr/generate/);
+
+    if ($self->maybe_expect(qr/on/)) {
+	$self->{generate_level}++;
+    } else {
+	$self->expect(qr/off/);
+	$self->{generate_level}--;
+    }
+    $self->skip_ws();
 }
 
 ####
@@ -62,6 +89,7 @@ sub widget
 	Name             => $name,
 	super            => $super,
 	sourcefilename   => $self->{reader_filename},
+	generate_level   => $self->{generate_level},
 	%{$block}
     );
 

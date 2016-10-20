@@ -19,6 +19,7 @@ sub main
 			comment => qr/#.*$/m,
 		    },
 		);
+    $parser->{generate_level} = 1;
 
     if (!@args) {
 	push @args, "testfile.xt";
@@ -97,6 +98,8 @@ sub reader
 		$parser->{reader_file} = $file;
 
 		return defined $lines ? $lines : "";
+	    } elsif ($line =~ /^%%/) {
+		$lines .= $line;
 	    } else {
 		print STDERR  "Unrecognized preprocessing line: ", $line;
 	    }
