@@ -2,7 +2,7 @@
 
 widget Simple : Core {
     class {
-        Bool (*change_sensitive)(Widget widget) = ChangeSensitive;
+        Bool (*change_sensitive)(Widget /* w */) = ChangeSensitive;
         XtPointer extension;
     }
     instance {
