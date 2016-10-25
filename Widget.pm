@@ -77,7 +77,9 @@ sub analyze
 	}
     }
 
-    print "Analyzing $self->{Name}\n";
+    print "Analyzing $self->{Name}";
+    print " (no code generation)" if $self->{generate_level} <= 0;
+    print "\n";
 
     $self->{analyzed}++;
 
