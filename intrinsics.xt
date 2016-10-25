@@ -18,7 +18,8 @@ widget Core {
         XtEnum          class_inited = FALSE;       /* has class been initialized?      */
         XtInitProc      initialize = %cInitialize;  /* initialize subclass fields       */
         XtArgsProc      initialize_hook;            /* notify that initialize called    */
-        XtRealizeProc   realize = %cRealize;        /* XCreateWindow for widget         */
+        XtRealizeProc   realize = %cRealize;
+	                     sub= XtInheritRealize; /* XCreateWindow for widget         */
         XtActionList    actions;                    /* widget semantics name to proc map */
         Cardinal        num_actions;                /* number of entries in actions     */
         XtResourceList  resources = resources;      /* resources for subclass fields    */
