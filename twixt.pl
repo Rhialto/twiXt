@@ -6,6 +6,14 @@ use strict;
 use warnings;
 #use Data::Dumper;
 #use Data::Printer;
+use File::Spec;
+# Search for our modules in the same directory as our driver.
+# Does this get fooled if we get invoked via a symlink?
+BEGIN {
+    use File::Basename;
+    my $filedir = dirname(__FILE__);
+    push @INC, $filedir;
+}
 use TwiXt;
 use Widget;
 use Generator;
