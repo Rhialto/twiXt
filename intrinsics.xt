@@ -424,6 +424,7 @@ widget WMShell : Shell {
         private: char       *title;
         private: int         wm_timeout;
         private: Boolean     wait_for_wm;
+        resource: Boolean(Transient) transient = False;
         private: Boolean     transient;
         private: Boolean     urgency;
         private: Widget      client_leader;
@@ -465,8 +466,9 @@ widget TransientShell : VendorShell {
         XtPointer       extension;          /* pointer to extension record      */
     }
     instance {
-        # TODO
-        private: Widget transient_for;
+        resource: Boolean(Transient) transient @:wm.transient = True;
+
+        public: Widget(TransientFor) transient_for =R(Widget) NULL;
 
         resource: Boolean(SaveUnder) save_under @:shell.save_under = True;
     }
