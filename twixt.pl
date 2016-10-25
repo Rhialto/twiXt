@@ -34,6 +34,7 @@ sub main
 	$parser->{reader_filename} = $filename;
 	$parser->{reader_filestack} = [];
 	$parser->{reader_file} = $file;
+	$parser->{reader_include_dir} = [ "." ];
 
 	my $twigs = $parser->from_reader(\&reader);
 
@@ -88,8 +89,21 @@ sub reader
 	#print STDERR "line: ", $line;
 
 	if ($line =~ /^%/) {
-	    if ($line =~ /^%\s*include\s*"(.*)"/) {
+	    if ($line =~ /^%\s*include_dir\s*"(.*)"/) {
+		my $dirname = $1;
+		push @{$parser->{reader_include_dir}}, $dirname;
+	    } elsif ($line =~ /^%\s*include\s*"(.*)"/) {
 		my $filename = $1;
+		# Find the file in the include directories
+		DIRS: for my $dir (@{$parser->{reader_include_dir}}) {
+		    #my $try = $dir."/".$filename;
+		    my $try = File::Spec->catfile($dir, $filename);
+
+		    if (-e $try) {
+			$filename = $try;
+			last DIRS;
+		    }
+		}
 		push @{$parser->{reader_filestack}}, $file;
 
 		#print STDERR  "%%% including file $filename\n";
