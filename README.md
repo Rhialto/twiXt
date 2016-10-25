@@ -85,7 +85,7 @@ A field description can optionally include initalization values in two
 variants: one for class records in the class implementation itself,
 (started with `=`) and one proposed to implementations of subclasses
 (start with `sub=`).
-These can be overriden if desired.
+The subclass can override the proposal if it wants.
 
 If no class expression is given, it usually defaults to 0.
 If no subclass expression is given, it defaults to the class expression.
@@ -279,6 +279,10 @@ in class fields, they typically point to a fixed function, but if you
 have them in instances, that would not be useful. You'd have multiple
 alternative functions to point to. And that is getting out of TwiXt's
 scope (and ability to invent syntax for it).
+
+## Dependencies
+
+TwiXt uses Perl and the non-included module Parser::MGC.
 
 <!--
  vim:expandtab:ft=markdown:
