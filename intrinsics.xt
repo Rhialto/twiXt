@@ -34,7 +34,8 @@ widget Core {
         XtExposeProc    expose = 0; sub= %cExpose;  /* rediplay window                  */
         XtSetValuesFunc set_values = %cSetValues;   /* set subclass resource values     */
         XtArgsFunc      set_values_hook;            /* notify that set_values called    */
-        XtAlmostProc    set_values_almost = %cSetValuesAlmost;  /* set_values got "Almost" geo reply */
+        XtAlmostProc    set_values_almost = %cSetValuesAlmost;
+	                               sub= XtInheritSetValuesAlmost; /* set_values got "Almost" geo reply */
         XtArgsProc      get_values_hook;            /* notify that get_values called    */
         XtAcceptFocusProc accept_focus;             /* assign input focus to widget     */
         XtVersionType   version = XtVersion;        /* version of intrinsics used       */
