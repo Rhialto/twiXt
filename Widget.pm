@@ -107,7 +107,7 @@ sub analyze
     $self->{class_record_part_type} = $Name."ClassPart";
 
     $self->{class_record_instance} = $name."ClassRec";
-    $self->{class_record_instance_ptr} = $name."Class";
+    $self->{class_record_instance_ptr} = $name."WidgetClass";
 
     # Calculate (super)class record declarations
 
