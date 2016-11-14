@@ -41,11 +41,11 @@ widget Joystick : Simple {
 
     code "JoystickInitialize" {{{
         JoystickWidget joy = (JoystickWidget)new;
+        XGCValues values;
 
         joy->joystick.led_xsize = 4;    /* arbitrary value */
         joy->joystick.led_ysize = 4;    /* arbitrary value */
 
-        XGCValues values;
         values.foreground = joy->joystick.direction_color;
         values.background = joy->core.background_pixel;
         values.line_width = 0;
