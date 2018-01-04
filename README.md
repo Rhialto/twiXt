@@ -141,7 +141,7 @@ your own `class` block (because that is the order in which the full class
 record is generated):
 
 <pre></code>
-class SubClass : BaseClass {
+widget SubClass : BaseClass {
     override BaseClass {
         # We would like a different value for our version of the
         # class field BaseClass.classfield_int.
