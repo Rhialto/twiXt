@@ -4,13 +4,23 @@
  * a toplevel window.
  *
  * To compile:
- *	cc -g visual.c -o visual -lXaw -lXmu -lXt -lXext -lX11 -lm
+ *	cc -g main.c Joystick.c -o joystick -lXaw -lXmu -lXt -lXext -lX11 -lm
  *
  * To run:
- *	./visual -geometry 300x300 -depth 24 -visual StaticColor -fg blue -bg yellow
+ *	./joystick -geometry 300x300 -depth 24 -visual StaticColor -fg blue -bg yellow
  *
  * you need to move the mouse to get the particular visuals colormap
  * to install.
+ *
+ * You can also override widget properties in your .Xresources file,
+ * in a file in app-defaults, or with
+ *
+ * 	./joystick -xrm "widgetTest.form.joystick1.borderWidth:5" \
+		   -xrm "WidgetTest.Form.Joystick.borderColor:red" \
+		   -xrm "WidgetTest.Form.Joystick.background:purple"
+ *
+ * Note how the more specific (e.g. instance name instead of class name)
+ * setting wins.
  */
 
 #include <stdio.h>
@@ -44,6 +54,16 @@ XrmOptionDescRec Desc[] =
     {"-depth", "*depth", XrmoptionSepArg, NULL}
 };
 
+String fallback_resources[] = {
+    "WidgetTest.Form.joystick1.width: 32",
+    "WidgetTest.Form.joystick1.height: 32",
+
+    "WidgetTest.Form.joystick2.width: 64",
+    "WidgetTest.Form.joystick2.height: 64",
+    "WidgetTest.Form.joystick2.background: yellow",
+    "WidgetTest.Form.joystick2.borderWidth: 0",
+    NULL,
+};
 
 struct TimerCtx {
     XtAppContext app_context;
@@ -107,8 +127,8 @@ main (int argc, char **argv)
     int			count;		/* number of matchs (only 1?) */
     Arg			args[10];
     Cardinal		cnt;
-    char	       *name = "test";
-    char	       *class = "Test";
+    char	       *name = "widgetTest";
+    char	       *class = "WidgetTest";
     Widget		form;
     Widget		joy1, joy2;
     XColor		screen_def, exact_def;
@@ -127,7 +147,7 @@ main (int argc, char **argv)
      */
     cnt = 0;
     top = XtOpenApplication(&app, class, Desc, XtNumber(Desc), &argc, argv,
-			    (String *)NULL, applicationShellWidgetClass,
+			    fallback_resources, applicationShellWidgetClass,
 			    args, cnt);
     dpy = XtDisplay (top);
     cnt = 0;
@@ -172,13 +192,16 @@ main (int argc, char **argv)
     XtSetArg(args[cnt], XtNargv, xargv); ++cnt;
     XtSetArg(args[cnt], XtNargc, xargc); ++cnt;
 
-    top = XtAppCreateShell((char *) NULL, class,
+    top = XtAppCreateShell(name, class,
 			   applicationShellWidgetClass,
 			   dpy, args, cnt);
 
     /*
      * Add a Form into the toplevel, so we can put
      * some of the widgets into it that we really wanted to test.
+     *
+     * Note how parameters such as XtNwidth or XtNbackground are not
+     * needed since they are in the fallback_resources.
      */
     form = XtVaCreateManagedWidget("form",
 				   formWidgetClass, top,
@@ -186,21 +209,12 @@ main (int argc, char **argv)
 
     joy1 = XtVaCreateManagedWidget("joystick1",
 				   joystickWidgetClass, form,
-				   XtNwidth, 32,
-				   XtNheight, 32,
 				   /* Constraints */
 				   NULL);
 
-    XAllocNamedColor(dpy, colormap, "yellow",
-		     &screen_def, &exact_def);
-
     joy2 = XtVaCreateManagedWidget("joystick2",
 				   joystickWidgetClass, form,
-				   XtNwidth, 64,
-				   XtNheight, 64,
 				   XtNenableBits, 31,
-				   XtNbackground,  screen_def.pixel,
-				   XtNborderWidth, 0,
 				   /* Constraints */
 				   XtNfromHoriz, joy1,
 				   NULL);
